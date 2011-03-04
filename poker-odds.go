@@ -18,7 +18,6 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"strings"
 )
 
 func usage() {
@@ -43,26 +42,83 @@ If no -b is given, it will be assumed that no cards are on the board.
 -h this help message
 
 Usage Example:
-%s -a \"KS QS\"
+%s -a KS\ QS
 Find the outs you have pre-flop with a king and queen of spades.
 
 `, os.Args[0], os.Args[0])
 }
 
 const (
-A Ty1 = iota;
-B;
-C
+	PARSE_STATE_EAT_TYPE = iota
+	PARSE_STATE_EAT_TYPE_SAW_1
+	PARSE_STATE_EAT_SUIT
 )
 
-func strToCardList(str *string) {
-	var parse_state
-	for _, r := range *str {
-		switch(r) {
-		case parse_state
+const (
+	CLUBS = iota
+	DIAMONDS
+	HEARTS
+	SPADES
+)
+
+func strToCardList(str *string) (myType int, mySuit int) {
+//	var myType = -1
+//	var mySuit = CLUBS
+	var parseState = PARSE_STATE_EAT_TYPE
+	for _, c := range *str {
+		switch {
+		case parseState == PARSE_STATE_EAT_TYPE:
+			switch {
+			case c == ' ' || c == '\t':
+				continue
+			case c == '1':
+				parseState = PARSE_STATE_EAT_TYPE_SAW_1
+			case c >= '2' && c <= '9':
+				myType = c - '0'
+				parseState = PARSE_STATE_EAT_SUIT
+			case c == 'J':
+				myType = 11
+				parseState = PARSE_STATE_EAT_SUIT
+			case c == 'Q':
+				myType = 12
+				parseState = PARSE_STATE_EAT_SUIT
+			case c == 'K':
+				myType = 13
+				parseState = PARSE_STATE_EAT_SUIT
+			case c == 'A':
+				myType = 1
+				parseState = PARSE_STATE_EAT_SUIT
+			default:
+				return -1,-1
+			}
+		case parseState == PARSE_STATE_EAT_TYPE_SAW_1:
+			switch {
+			case c == '0':
+				myType = 10
+				parseState = PARSE_STATE_EAT_SUIT
+			default:
+				return -1,-1
+			}
+		case parseState == PARSE_STATE_EAT_SUIT:
+			switch {
+			case c == 'C':
+				mySuit = CLUBS
+				return myType, mySuit
+			case c == 'D':
+				mySuit = DIAMONDS
+				return myType, mySuit
+			case c == 'H':
+				mySuit = HEARTS
+				return myType, mySuit
+			case c == 'S':
+				mySuit = SPADES
+				return myType, mySuit
+			default:
+				return -1,-1
+			}
 		}
 	}
-	fmt.Printf("str='%s'\n", str)
+	return -1,-1
 }
 
 func main() {
@@ -87,5 +143,6 @@ func main() {
 		os.Exit(1)
 	}
 	fmt.Printf("your hand: '%s'\n", *hand)
-	strToCardList(hand)
+	var myType, mySuit = strToCardList(hand)
+	fmt.Println("myType = ", myType, " mySuit = ", mySuit)
 }

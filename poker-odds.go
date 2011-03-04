@@ -20,9 +20,22 @@ import (
 	"os"
 )
 
+const (
+	PARSE_STATE_EAT_VAL = iota
+	PARSE_STATE_EAT_VAL_SAW_1
+	PARSE_STATE_EAT_SUIT
+)
+
+const (
+	CLUBS = iota
+	DIAMONDS
+	HEARTS
+	SPADES
+)
+
 func usage() {
-	fmt.Fprintf(os.Stderr, `
-%s: the Texas Hold Em' poker odds calculator.
+	fmt.Fprintf(os.Stderr,
+`%s: the Texas Hold Em' poker odds calculator.
 
 This program calculates your 'outs' for a Texas Hold Em' poker hand.
 Texas Hold Em' is a popular version of poker where each player receives
@@ -44,81 +57,103 @@ If no -b is given, it will be assumed that no cards are on the board.
 Usage Example:
 %s -a KS\ QS
 Find the outs you have pre-flop with a king and queen of spades.
-
 `, os.Args[0], os.Args[0])
 }
 
-const (
-	PARSE_STATE_EAT_TYPE = iota
-	PARSE_STATE_EAT_TYPE_SAW_1
-	PARSE_STATE_EAT_SUIT
-)
+type card struct {
+	val int
+	suit int
+}
 
-const (
-	CLUBS = iota
-	DIAMONDS
-	HEARTS
-	SPADES
-)
+func valToStr(v int) (string) {
+	switch {
+	case v == 1:
+		return "A"
+	case v == 11:
+		return "J"
+	case v == 12:
+		return "Q"
+	case v == 13:
+		return "K"
+	}
+	return fmt.Sprintf("%d", v)
+}
 
-func strToCardList(str *string) (myType int, mySuit int) {
-//	var myType = -1
-//	var mySuit = CLUBS
-	var parseState = PARSE_STATE_EAT_TYPE
+func suitToStr(s int) (string) {
+	switch {
+	case s == CLUBS:
+		return "♣C"
+	case s == DIAMONDS:
+		return "♦D"
+	case s == HEARTS:
+		return "♥H"
+	case s == SPADES:
+		return "♠S"
+	}
+	return ""
+}
+
+func (p *card) toStr() string {
+	return fmt.Sprintf("%s%s", valToStr(p.val), suitToStr(p.suit))
+}
+
+func strToCard(str *string) (myCard *card) {
+	myCard = new(card)
+	var parseState = PARSE_STATE_EAT_VAL
 	for _, c := range *str {
 		switch {
-		case parseState == PARSE_STATE_EAT_TYPE:
+		case parseState == PARSE_STATE_EAT_VAL:
 			switch {
 			case c == ' ' || c == '\t':
 				continue
 			case c == '1':
-				parseState = PARSE_STATE_EAT_TYPE_SAW_1
+				parseState = PARSE_STATE_EAT_VAL_SAW_1
 			case c >= '2' && c <= '9':
-				myType = c - '0'
+				myCard.val = c - '0'
 				parseState = PARSE_STATE_EAT_SUIT
 			case c == 'J':
-				myType = 11
+				myCard.val = 11
 				parseState = PARSE_STATE_EAT_SUIT
 			case c == 'Q':
-				myType = 12
+				myCard.val = 12
 				parseState = PARSE_STATE_EAT_SUIT
 			case c == 'K':
-				myType = 13
+				myCard.val = 13
 				parseState = PARSE_STATE_EAT_SUIT
 			case c == 'A':
-				myType = 1
+				myCard.val = 1
 				parseState = PARSE_STATE_EAT_SUIT
 			default:
-				return -1,-1
+				return nil
 			}
-		case parseState == PARSE_STATE_EAT_TYPE_SAW_1:
+		case parseState == PARSE_STATE_EAT_VAL_SAW_1:
 			switch {
 			case c == '0':
-				myType = 10
+				myCard.val = 10
 				parseState = PARSE_STATE_EAT_SUIT
 			default:
-				return -1,-1
+				return nil
 			}
 		case parseState == PARSE_STATE_EAT_SUIT:
 			switch {
 			case c == 'C':
-				mySuit = CLUBS
-				return myType, mySuit
+				myCard.suit = CLUBS
+				return myCard
 			case c == 'D':
-				mySuit = DIAMONDS
-				return myType, mySuit
+				myCard.suit = DIAMONDS
+				return myCard
 			case c == 'H':
-				mySuit = HEARTS
-				return myType, mySuit
+				myCard.suit = HEARTS
+				return myCard
 			case c == 'S':
-				mySuit = SPADES
-				return myType, mySuit
+				myCard.suit = SPADES
+				return myCard
 			default:
-				return -1,-1
+				return nil
 			}
 		}
 	}
-	return -1,-1
+    return nil
 }
 
 func main() {
@@ -143,6 +178,6 @@ func main() {
 		os.Exit(1)
 	}
 	fmt.Printf("your hand: '%s'\n", *hand)
-	var myType, mySuit = strToCardList(hand)
-	fmt.Println("myType = ", myType, " mySuit = ", mySuit)
+	var card = strToCard(hand)
+	fmt.Printf("card = %s\n", card.toStr())
 }

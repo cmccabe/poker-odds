@@ -18,7 +18,6 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"container/vector"
 )
 
 const (
@@ -127,7 +126,7 @@ func strToCard(str string, cnt *int) (myCard *card) {
 				myCard.val = 1
 				parseState = PARSE_STATE_EAT_SUIT
 			default:
-				return nil
+				return
 			}
 		case parseState == PARSE_STATE_EAT_VAL_SAW_1:
 			switch {
@@ -135,40 +134,39 @@ func strToCard(str string, cnt *int) (myCard *card) {
 				myCard.val = 10
 				parseState = PARSE_STATE_EAT_SUIT
 			default:
-				return nil
+				return
 			}
 		case parseState == PARSE_STATE_EAT_SUIT:
 			switch {
 			case c == 'C':
 				myCard.suit = CLUBS
-				return myCard
+				return
 			case c == 'D':
 				myCard.suit = DIAMONDS
-				return myCard
+				return
 			case c == 'H':
 				myCard.suit = HEARTS
-				return myCard
+				return
 			case c == 'S':
 				myCard.suit = SPADES
-				return myCard
+				return
 			default:
-				return nil
+				return
 			}
 		}
 	}
-    return myCard
+	*cnt = -1
+    return
 }
 
-func strToCards(str string) (v vector.Vector, errIdx int) {
-	errIdx = 0
-	for ;errIdx < len(str); {
-		var c = strToCard(str, &errIdx)
-		if (c == nil) {
-			return v, errIdx
+func strToCards(str string) (cards []*card, cnt int) {
+	for cnt = 0; cnt != -1; {
+		var c = strToCard(str, &cnt)
+		if (c != nil) {
+			cards = append(cards,c)
 		}
-		v.Push(c)
 	}
-	return v, 0
+	return
 }
 
 func main() {
@@ -195,22 +193,20 @@ func main() {
 	}
 	var cnt = 0
 	var handC = strToCard(*hand, &cnt)
+	if (handC == nil) {
+		fmt.Printf("Error parsing your hand: parse error at character %d\n",
+				   cnt)
+		os.Exit(1)
+	}
 
 	fmt.Printf("your hand = %s\n", handC.toStr())
 
 	var boardC, errIdx = strToCards(*board)
-	if (errIdx != 0) {
+	if (errIdx != -1) {
 		fmt.Printf("parse error at character %d\n", errIdx)
 	}
 	var i int
-	for i = 0; i < boardC.Len(); i++ {
-		var bc *card
-		switch ty := boardC[i].(type) {
-			case *card:
-				bc = ty
-			default:
-				os.Exit(1)
-		}
-		fmt.Printf("card = %s\n", bc.toStr())
+	for i = 0; i < len(boardC); i++ {
+		fmt.Printf("card = %s\n", boardC[i].toStr())
 	}
 }

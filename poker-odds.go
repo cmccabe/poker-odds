@@ -18,6 +18,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"container/vector"
 )
 
 const (
@@ -97,10 +98,12 @@ func (p *card) toStr() string {
 	return fmt.Sprintf("%s%s", valToStr(p.val), suitToStr(p.suit))
 }
 
-func strToCard(str *string) (myCard *card) {
+func strToCard(str string, cnt *int) (myCard *card) {
 	myCard = new(card)
 	var parseState = PARSE_STATE_EAT_VAL
-	for _, c := range *str {
+	for ;*cnt < len(str); {
+		var c = str[*cnt]
+		*cnt++
 		switch {
 		case parseState == PARSE_STATE_EAT_VAL:
 			switch {
@@ -109,7 +112,7 @@ func strToCard(str *string) (myCard *card) {
 			case c == '1':
 				parseState = PARSE_STATE_EAT_VAL_SAW_1
 			case c >= '2' && c <= '9':
-				myCard.val = c - '0'
+				myCard.val = (int)(c - '0')
 				parseState = PARSE_STATE_EAT_SUIT
 			case c == 'J':
 				myCard.val = 11
@@ -153,7 +156,19 @@ func strToCard(str *string) (myCard *card) {
 			}
 		}
 	}
-    return nil
+    return myCard
+}
+
+func strToCards(str string) (v vector.Vector, errIdx int) {
+	errIdx = 0
+	for ;errIdx < len(str); {
+		var c = strToCard(str, &errIdx)
+		if (c == nil) {
+			return v, errIdx
+		}
+		v.Push(c)
+	}
+	return v, 0
 }
 
 func main() {
@@ -161,6 +176,7 @@ func main() {
 	var verbose = flag.Bool("v", false, "verbose")
 	var help = flag.Bool("h", false, "help")
 	var hand = flag.String("a", "", "your hand")
+	var board = flag.String("b", "", "the board")
 	flag.Parse()
 
 	if (*help) {
@@ -177,7 +193,24 @@ func main() {
 		usage()
 		os.Exit(1)
 	}
-	fmt.Printf("your hand: '%s'\n", *hand)
-	var card = strToCard(hand)
-	fmt.Printf("card = %s\n", card.toStr())
+	var cnt = 0
+	var handC = strToCard(*hand, &cnt)
+
+	fmt.Printf("your hand = %s\n", handC.toStr())
+
+	var boardC, errIdx = strToCards(*board)
+	if (errIdx != 0) {
+		fmt.Printf("parse error at character %d\n", errIdx)
+	}
+	var i int
+	for i = 0; i < boardC.Len(); i++ {
+		var bc *card
+		switch ty := boardC[i].(type) {
+			case *card:
+				bc = ty
+			default:
+				os.Exit(1)
+		}
+		fmt.Printf("card = %s\n", bc.toStr())
+	}
 }

@@ -126,7 +126,8 @@ func strToCard(str string, cnt *int) (myCard *card) {
 				myCard.val = 1
 				parseState = PARSE_STATE_EAT_SUIT
 			default:
-				return
+				*cnt = -1
+				return nil
 			}
 		case parseState == PARSE_STATE_EAT_VAL_SAW_1:
 			switch {
@@ -134,29 +135,28 @@ func strToCard(str string, cnt *int) (myCard *card) {
 				myCard.val = 10
 				parseState = PARSE_STATE_EAT_SUIT
 			default:
-				return
+				*cnt = -1
+				return nil
 			}
 		case parseState == PARSE_STATE_EAT_SUIT:
 			switch {
 			case c == 'C':
 				myCard.suit = CLUBS
-				return
 			case c == 'D':
 				myCard.suit = DIAMONDS
-				return
 			case c == 'H':
 				myCard.suit = HEARTS
-				return
 			case c == 'S':
 				myCard.suit = SPADES
-				return
 			default:
-				return
+				*cnt = -1
+				return nil
 			}
+			return myCard
 		}
 	}
 	*cnt = -1
-    return
+    return nil
 }
 
 func strToCards(str string) (cards []*card, cnt int) {
@@ -167,6 +167,23 @@ func strToCards(str string) (cards []*card, cnt int) {
 		}
 	}
 	return
+}
+
+func checkBoardLength(l int) {
+	var validLens = []int { 0, 3, 4, 5 }
+	for i := range(validLens) {
+		if (l == validLens[i]) {
+			return
+		}
+	}
+	fmt.Printf("illegal board length. Expected a length of ");
+	sep := ""
+	for i := range(validLens) {
+		fmt.Printf("%s%d", sep, validLens[i]);
+		sep = ", "
+	}
+	fmt.Printf(" but your board length was %d.\n", l);
+	os.Exit(1)
 }
 
 func main() {
@@ -181,11 +198,6 @@ func main() {
 		usage()
 		os.Exit(0)
 	}
-	if (*verbose) {
-		fmt.Println("Hello, 世界")
-	} else {
-		fmt.Println("exiting")
-	}
 	if (*hand == "") {
 		fmt.Printf("You must give a hand with -a\n")
 		usage()
@@ -199,14 +211,23 @@ func main() {
 		os.Exit(1)
 	}
 
-	fmt.Printf("your hand = %s\n", handC.toStr())
+	if (*verbose) {
+		fmt.Printf("Your hand: %s\n", handC.toStr())
+	}
 
 	var boardC, errIdx = strToCards(*board)
 	if (errIdx != -1) {
 		fmt.Printf("parse error at character %d\n", errIdx)
 	}
-	var i int
-	for i = 0; i < len(boardC); i++ {
-		fmt.Printf("card = %s\n", boardC[i].toStr())
+	checkBoardLength(len(boardC))
+	if (*verbose) {
+		var i int
+		var sep = ""
+		fmt.Printf("The board: ");
+		for i = 0; i < len(boardC); i++ {
+			fmt.Printf("%s%s", sep, boardC[i].toStr())
+			sep = ", "
+		}
+		fmt.Printf("\n");
 	}
 }

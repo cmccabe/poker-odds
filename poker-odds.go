@@ -93,7 +93,7 @@ func suitToStr(s int) (string) {
 	return ""
 }
 
-func (p *card) toStr() string {
+func (p *card) String() string {
 	return fmt.Sprintf("%s%s", valToStr(p.val), suitToStr(p.suit))
 }
 
@@ -159,6 +159,36 @@ func strToCard(str string, cnt *int) (myCard *card) {
     return nil
 }
 
+func (p *card) Compare(rhs *card) int {
+	if (p.suit < rhs.suit) {
+		return -1;
+	}
+	if (p.suit > rhs.suit) {
+		return 1;
+	}
+	if (p.val < rhs.val) {
+		return -1;
+	}
+	if (p.val > rhs.val) {
+		return 1;
+	}
+	return 0;
+}
+
+func hasDuplicates(c []*card) *card {
+	for i := range(c) {
+		for j := range(c) {
+			if i == j {
+				continue
+			}
+			if (c[i].Compare(c[j]) == 0) {
+				return c[i]
+			}
+		}
+	}
+	return nil
+}
+
 func strToCards(str string) (cards []*card, cnt int) {
 	for cnt = 0; cnt != -1; {
 		var c = strToCard(str, &cnt)
@@ -169,20 +199,26 @@ func strToCards(str string) (cards []*card, cnt int) {
 	return
 }
 
+func intsToStr(s []int) (string) {
+	ret := ""
+	sep := ""
+	for i := range(s) {
+		ret += fmt.Sprintf("%s%d", sep, s[i])
+		sep = ", "
+	}
+	return ret
+}
+
 func checkBoardLength(l int) {
 	var validLens = []int { 0, 3, 4, 5 }
 	for i := range(validLens) {
-		if (l == validLens[i]) {
+		if (int(l) == validLens[i]) {
 			return
 		}
 	}
-	fmt.Printf("illegal board length. Expected a length of ");
-	sep := ""
-	for i := range(validLens) {
-		fmt.Printf("%s%d", sep, validLens[i]);
-		sep = ", "
-	}
-	fmt.Printf(" but your board length was %d.\n", l);
+
+	fmt.Printf("illegal board length. Expected a length of %s, " +
+	"but your board length was %d.\n", intsToStr(validLens), l)
 	os.Exit(1)
 }
 
@@ -212,7 +248,7 @@ func main() {
 	}
 
 	if (*verbose) {
-		fmt.Printf("Your hand: %s\n", handC.toStr())
+		fmt.Printf("Your hand: %s\n", handC.String())
 	}
 
 	var boardC, errIdx = strToCards(*board)
@@ -225,9 +261,17 @@ func main() {
 		var sep = ""
 		fmt.Printf("The board: ");
 		for i = 0; i < len(boardC); i++ {
-			fmt.Printf("%s%s", sep, boardC[i].toStr())
+			fmt.Printf("%s%s", sep, boardC[i].String())
 			sep = ", "
 		}
 		fmt.Printf("\n");
+	}
+
+	var c = make([]*card, len(boardC)+1)
+	copy(c, boardC)
+	c[len(boardC)] = handC
+	dupe := hasDuplicates(c)
+	if (dupe != nil) {
+		fmt.Printf("The card %s appears more than once!\n", dupe)
 	}
 }

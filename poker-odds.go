@@ -199,6 +199,16 @@ func strToCards(str string) (cards []*card, cnt int) {
 	return
 }
 
+func cardsToStr(c []*card) (string) {
+	ret := ""
+	sep := ""
+	for i := range(c) {
+		ret += fmt.Sprintf("%s%s", sep, c[i].String())
+		sep = ", "
+	}
+	return ret
+}
+
 func intsToStr(s []int) (string) {
 	ret := ""
 	sep := ""
@@ -222,8 +232,6 @@ func checkBoardLength(l int) {
 	os.Exit(1)
 }
 
-var allCards [52]*card
-
 func generateAllVals(i *int, cards *[52]*card, suit int) {
 	for val := 1; val <= 13; val++ {
 		cards[*i] = new(card)
@@ -241,48 +249,46 @@ func generateAllCards(cards *[52]*card) {
 	generateAllVals(&i, cards, SPADES)
 }
 
-func nextPermutation(cards *[52]*card) bool {
-	// Find the largest index k such that a[k] < a[k + 1].
-	var k int
-	for k = len(cards)-2; k > 0; k-- {
-		if (cards[k].Compare(cards[k+1]) < 0) {
-			break
+// find next k-combination
+// assume x has form x'01^a10^b in binary
+func nextCombination(x *int64) bool {
+	u := *x & -*x // extract rightmost bit 1; u =  0'00^a10^b
+	v := u + *x // set last non-trailing bit 0, and clear to the right; v=x'10^a00^b
+	if (v==0) { // then overflow in v, or x==0
+		return false; // signal that next k-combination cannot be represented
+	}
+	*x = v + (((v^*x)/u)>>2); // v^x = 0'11^a10^b, (v^x)/u = 0'0^b1^{a+2}, and x ← x'100^b1^a
+	if (*x >= (1<<52)) {
+		return false; // too big
+	}
+	return true; // successful completion
+}
+
+func combinationToHand(comb int64, allCards *[52]*card, holeC *[]*card,
+						boardC *[]*card) ([]*card) {
+	var ret []*card = make([]*card, 5)
+	copy(ret[:], *holeC)
+	copy(ret[len(*holeC):], *boardC)
+	var n = len(*holeC) + len(*boardC)
+	for i := range(allCards) {
+		if (((1 << uint(i)) & comb) != 0) {
+			ret[n] = &(*allCards[i])
+			n++
+			if (n >= 5) {
+				return ret
+			}
 		}
 	}
-	if (k < 0) {
-		// If no such index exists, the permutation is the last permutation.
-		return false;
-	}
-
-	// Find the largest index l such that a[k] < a[l]. Since k + 1 is such an
-	// index, l is well defined and satisfies k < l.
-	var l int
-	for l = len(cards)-1; l >= k + 1; l-- {
-		if (cards[k].Compare(cards[l]) < 0) {
-			break
-		}
-	}
-
-	// Swap a[k] with a[l]
-	tmp := cards[k]
-	cards[k] = cards[l]
-	cards[l] = tmp
-
-	// Reverse the sequence from a[k + 1] up to and including the final 
-	// element a[n].
-	for i := k+1; i < (len(cards)-1-(k+1))/2; i++ {
-		tmp := cards[i]
-		cards[i] = cards[len(cards)-1-i]
-		cards[len(cards)-1-i] = tmp
-	}
-	return true
+	fmt.Printf("combinationToHand: logic error: got to unreachable point\n")
+	os.Exit(1)
+	return ret
 }
 
 func main() {
 	flag.Usage = usage
 	var verbose = flag.Bool("v", false, "verbose")
 	var help = flag.Bool("h", false, "help")
-	var hand = flag.String("a", "", "your hand")
+	var hole = flag.String("a", "", "your two hole cards")
 	var board = flag.String("b", "", "the board")
 	flag.Parse()
 
@@ -290,56 +296,61 @@ func main() {
 		usage()
 		os.Exit(0)
 	}
-	if (*hand == "") {
-		fmt.Printf("You must give a hand with -a\n")
+	if (*hole == "") {
+		fmt.Printf("You must give two hole cards with -a\n")
 		usage()
 		os.Exit(1)
 	}
-	var cnt = 0
-	var handC = strToCard(*hand, &cnt)
-	if (handC == nil) {
-		fmt.Printf("Error parsing your hand: parse error at character %d\n",
-				   cnt)
+	holeC, errIdx := strToCards(*hole)
+	if (errIdx != -1) {
+		fmt.Printf("Error parsing your hole cards: parse error at character %d\n",
+				   errIdx)
 		os.Exit(1)
 	}
 
 	if (*verbose) {
-		fmt.Printf("Your hand: %s\n", handC.String())
+		fmt.Printf("Your hole cards: %s\n", cardsToStr(holeC));
 	}
 
-	var boardC, errIdx = strToCards(*board)
-	if (errIdx != -1) {
-		fmt.Printf("parse error at character %d\n", errIdx)
+	boardC, bErrIdx := strToCards(*board)
+	if (bErrIdx != -1) {
+		fmt.Printf("parse error at character %d\n", bErrIdx)
 	}
 	checkBoardLength(len(boardC))
 	if (*verbose) {
-		var i int
-		var sep = ""
-		fmt.Printf("The board: ");
-		for i = 0; i < len(boardC); i++ {
-			fmt.Printf("%s%s", sep, boardC[i].String())
-			sep = ", "
-		}
-		fmt.Printf("\n");
+		fmt.Printf("The board: %s\n", cardsToStr(boardC));
 	}
 
-	var c = make([]*card, len(boardC)+1)
+	var c = make([]*card, len(boardC) + len(holeC))
 	copy(c, boardC)
-	c[len(boardC)] = handC
+	copy(c[len(boardC):], holeC)
 	dupe := hasDuplicates(c)
 	if (dupe != nil) {
 		fmt.Printf("The card %s appears more than once!\n", dupe)
+		os.Exit(1)
 	}
 
 	// generate all cards
+	var allCards [52]*card
 	generateAllCards(&allCards)
-	for perm_num:=0;nextPermutation(&allCards);perm_num++ {
-		sep := ""
-		fmt.Printf("permutation %d\n", perm_num)
-		for i := 0; i < len(allCards); i++ {
-			fmt.Printf("%s%s", sep, allCards[i].String())
-			sep = ", "
-		}
-		fmt.Printf("\n")
+
+	var comb int64 = 31
+	switch (len(boardC)) {
+	case 0:
+		comb = 31
+	case 3:
+		comb = 3
+	case 4:
+		comb = 1
+	case 5:
+		comb = 0
+	default:
+		fmt.Printf("invalid board length %d\n", len(boardC))
+		os.Exit(1)
 	}
+	for ;nextCombination(&comb); {
+		h := combinationToHand(comb, &allCards, &holeC, &boardC)
+		fmt.Printf("%d: %s\n", comb, cardsToStr(h))
+	}
+
 }

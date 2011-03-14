@@ -241,6 +241,43 @@ func generateAllCards(cards *[52]*card) {
 	generateAllVals(&i, cards, SPADES)
 }
 
+func nextPermutation(cards *[52]*card) bool {
+	// Find the largest index k such that a[k] < a[k + 1].
+	var k int
+	for k = len(cards)-2; k > 0; k-- {
+		if (cards[k].Compare(cards[k+1]) < 0) {
+			break
+		}
+	}
+	if (k < 0) {
+		// If no such index exists, the permutation is the last permutation.
+		return false;
+	}
+
+	// Find the largest index l such that a[k] < a[l]. Since k + 1 is such an
+	// index, l is well defined and satisfies k < l.
+	var l int
+	for l = len(cards)-1; l >= k + 1; l-- {
+		if (cards[k].Compare(cards[l]) < 0) {
+			break
+		}
+	}
+
+	// Swap a[k] with a[l]
+	tmp := cards[k]
+	cards[k] = cards[l]
+	cards[l] = tmp
+
+	// Reverse the sequence from a[k + 1] up to and including the final 
+	// element a[n].
+	for i := k+1; i < (len(cards)-1-(k+1))/2; i++ {
+		tmp := cards[i]
+		cards[i] = cards[len(cards)-1-i]
+		cards[len(cards)-1-i] = tmp
+	}
+	return true
+}
+
 func main() {
 	flag.Usage = usage
 	var verbose = flag.Bool("v", false, "verbose")
@@ -296,5 +333,13 @@ func main() {
 
 	// generate all cards
 	generateAllCards(&allCards)
-	//nextPermutation(allCards)
+	for perm_num:=0;nextPermutation(&allCards);perm_num++ {
+		sep := ""
+		fmt.Printf("permutation %d\n", perm_num)
+		for i := 0; i < len(allCards); i++ {
+			fmt.Printf("%s%s", sep, allCards[i].String())
+			sep = ", "
+		}
+		fmt.Printf("\n")
+	}
 }

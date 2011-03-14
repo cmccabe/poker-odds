@@ -264,7 +264,7 @@ func nextCombination(x *int64) bool {
 	return true; // successful completion
 }
 
-func combinationToHand(comb int64, allCards *[52]*card, holeC *[]*card,
+func combinationToCards(comb int64, allCards *[52]*card, holeC *[]*card,
 						boardC *[]*card) ([]*card) {
 	var ret []*card = make([]*card, 5)
 	copy(ret[:], *holeC)
@@ -281,6 +281,149 @@ func combinationToHand(comb int64, allCards *[52]*card, holeC *[]*card,
 	}
 	fmt.Printf("combinationToHand: logic error: got to unreachable point\n")
 	os.Exit(1)
+	return ret
+}
+
+const {
+	HIGH_CARD = iota
+	PAIR
+	TWO_PAIR
+	THREE_OF_A_KIND
+	STRAIGHT
+	FLUSH
+	FULL_HOUSE
+	FOUR_OF_A_KIND
+	STRAIGHT_FLUSH
+}
+
+type hand struct {
+	cards []*card
+	val [2]int
+	flushSuit int
+	ty int
+}
+
+// hmm. would be better to sort the cards appropriately beforehand. It would
+// make straight detection easier.
+func makeHand(cards []*card) *hand {
+	ret := new(hand)
+	ret.cards = cards
+	var vals = make(map[int] int)
+	var suits = make(map[int] int)
+	var order []int
+	for i := range(cards) {
+		c := cards[i]
+		vals[c.val] = vals[c.val] + 1
+		suits[c.suit] = vals[c.suit] + 1
+	}
+
+	// check for flush
+	for i := range(suits) {
+		if (suits[i] >= 4) {
+			ret.flushSuit = i
+		}
+	}
+	// check for straight flush
+	var orderedVals := make([]int, len(vals))
+	j := 0
+	for k,_ := range (vals) {
+		orderedVals[j] = k
+		j++
+	}
+	sort.SortInts(&orderedVals)
+	prev = -1
+	runLen = 0
+	for i := range(orderedVals) {
+		if (prev + 1 == orderedVals[i]) {
+			runLen++;
+		}
+		else {
+			runLen = 0
+		}
+	}
+	if ((runLen >= 5) && (ret.flushSuit != 0)) {
+		ret.val[0] = orderedVals[len(orderedVals) - 5]
+		ret.ty = STRAIGHT_FLUSH
+		return ret
+	}
+
+	var freqs = make(map[int] []int)
+	for k,v := range(vals) {
+		if (v > 4) {
+			fmt.Printf("got %d of a kind for value %d (max is 4)\n", v, k)
+			os.Exit(0)
+		}
+		curFreqs := freqs[v]
+		m := 0
+		for m = 0; m < len(curFreqs); m++ {
+			if (curFreqs[m] >= k)
+				break
+		}
+		newFreqs := curFreqs[:m]
+		append(newFreqs, k)
+		append(newFreqs, curFreqs[m:])
+		freqs[v] = newFreqs
+	}
+
+	// four of a kind
+	if (len(freqs[4]) > 0) {
+		ret.ty = FOUR_OF_A_KIND
+		ret.val[0] = freqs[4][0]
+		return ret
+	}
+
+	// full house
+	if (len(freqs[3]) > 0) {
+		if (len(freqs[3]) > 1) {
+			ret.val[0] = freqs[3][0]
+			ret.val[1] = freqs[3][1]
+			ret.ty = FULL_HOUSE
+		}
+		else if (len(freqs[2]) > 0) {
+			ret.val[0] = freqs[3][0]
+			ret.val[1] = freqs[2][0]
+			ret.ty = FULL_HOUSE
+		}
+	}
+
+	// flush
+	if (ret.flushSuit != 0) {
+		ret.ty = FLUSH
+		return ret
+	}
+
+	// straight
+	if (runLen >= 5) {
+		// where does the straight start?
+		ret.val[0] = orderedVals[len(orderedVals) - 5]
+		ret.ty = STRAIGHT
+		return ret
+	}
+
+	// three of a kind
+	if (len(freqs[3]) > 0) {
+		ret.val[0] = freqs[3][0]
+		ret.ty = THREE_OF_A_KIND
+		return ret
+	}
+
+	// two pairs
+	if (len(freqs[2]) >= 2) {
+		ret.val[0] = freqs[2][0]
+		ret.val[1] = freqs[2][1]
+		ret.ty = TWO_PAIR
+		return ret
+	}
+
+	// a pair
+	if (len(freqs[2]) >= 1) {
+		ret.val[0] = freqs[2][0]
+		ret.ty = PAIR
+		return ret
+	}
+
+	// I guess not.
+	ret.ty = HIGH_CARD
 	return ret
 }
 
@@ -349,8 +492,12 @@ func main() {
 		os.Exit(1)
 	}
 	for ;nextCombination(&comb); {
-		h := combinationToHand(comb, &allCards, &holeC, &boardC)
-		fmt.Printf("%d: %s\n", comb, cardsToStr(h))
+		handC := combinationToCards(comb, &allCards, &holeC, &boardC)
+		fmt.Printf("%d: %s\n", comb, cardsToStr(handC))
+		var hand = makeHand(handC)
+		if (hand != nil) {
+			fmt.Printf("%s", hand.String())
+		}
 	}
 
 }

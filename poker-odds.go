@@ -222,6 +222,25 @@ func checkBoardLength(l int) {
 	os.Exit(1)
 }
 
+var allCards [52]*card
+
+func generateAllVals(i *int, cards *[52]*card, suit int) {
+	for val := 1; val <= 13; val++ {
+		cards[*i] = new(card)
+		cards[*i].suit = suit
+		cards[*i].val = val
+		*i++
+	}
+}
+
+func generateAllCards(cards *[52]*card) {
+	i := 0
+	generateAllVals(&i, cards, CLUBS)
+	generateAllVals(&i, cards, DIAMONDS)
+	generateAllVals(&i, cards, HEARTS)
+	generateAllVals(&i, cards, SPADES)
+}
+
 func main() {
 	flag.Usage = usage
 	var verbose = flag.Bool("v", false, "verbose")
@@ -274,4 +293,8 @@ func main() {
 	if (dupe != nil) {
 		fmt.Printf("The card %s appears more than once!\n", dupe)
 	}
+
+	// generate all cards
+	generateAllCards(&allCards)
+	//nextPermutation(allCards)
 }

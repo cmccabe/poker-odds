@@ -18,6 +18,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"sort"
 )
 
 const (
@@ -63,6 +64,29 @@ Find the outs you have pre-flop with a king and queen of spades.
 type card struct {
 	val int
 	suit int
+}
+
+type cardArray []*card
+
+func (cards cardArray) Len() int {
+	return len(cards)
+}
+
+func (cards cardArray) Less(i, j int) bool {
+	if (cards[i].val < cards[j].val) {
+		return true
+	}
+	if (cards[i].val > cards[j].val) {
+		return false
+	}
+	if (cards[i].suit < cards[j].suit) {
+		return true
+	}
+	return false
+}
+
+func (cards cardArray) Swap(i, j int) {
+	cards[i], cards[j] = cards[j], cards[i]
 }
 
 func valToStr(v int) (string) {
@@ -284,7 +308,7 @@ func combinationToCards(comb int64, allCards *[52]*card, holeC *[]*card,
 	return ret
 }
 
-const {
+const (
 	HIGH_CARD = iota
 	PAIR
 	TWO_PAIR
@@ -294,23 +318,90 @@ const {
 	FULL_HOUSE
 	FOUR_OF_A_KIND
 	STRAIGHT_FLUSH
-}
+)
 
 type hand struct {
-	cards []*card
+	ty int
 	val [2]int
 	flushSuit int
-	ty int
+	cards []*card
 }
 
-// hmm. would be better to sort the cards appropriately beforehand. It would
-// make straight detection easier.
-func makeHand(cards []*card) *hand {
+func (h hand) String() string {
+	ret := "Hand(ty:"
+	switch (h.ty) {
+	case HIGH_CARD:
+		ret += "HIGH CARD"
+	case PAIR:
+		ret += "PAIR of "
+		ret += valToStr(h.val[0])
+	case TWO_PAIR:
+		ret += "TWO PAIR of "
+		ret += valToStr(h.val[0])
+		ret += " and "
+		ret += valToStr(h.val[1])
+	case THREE_OF_A_KIND:
+		ret += "THREE OF A KIND of "
+		ret += valToStr(h.val[0])
+	case STRAIGHT:
+		ret += "STRAIGHT with high of "
+		ret += valToStr(h.val[0])
+	case FLUSH:
+		ret += "FLUSH in "
+		ret += suitToStr(h.flushSuit)
+	case FULL_HOUSE:
+		ret += "FULL HOUSE of "
+		ret += valToStr(h.val[0])
+		ret += " full of "
+		ret += valToStr(h.val[1])
+	case FOUR_OF_A_KIND:
+		ret += "FOUR OF A KIND of "
+		ret += valToStr(h.val[0])
+	case STRAIGHT_FLUSH:
+		ret += "STRAIGHT FLUSH with high of "
+		ret += valToStr(h.val[0])
+		ret += " in "
+		ret += suitToStr(h.flushSuit)
+	}
+
+	ret += ", cards:"
+	sep := ""
+	for c := range(h.cards) {
+		ret += sep
+		ret += h.cards[c].String()
+		sep = ", "
+	}
+
+	return ret
+}
+
+func pow64(a int64, b uint) int64 {
+	var ret int64
+	ret = 1
+	var i uint
+	for i = 0; i < b; i++ {
+		ret = ret * a
+	}
+	return ret
+}
+
+func remainingCardsToComb(cur uint) int64 {
+	var rem uint
+	rem = 5 - cur
+	if (rem < 0) {
+		panic("remainingCardsToComb: invalid argument")
+	}
+	return pow64(2, uint(rem)) - 1
+}
+
+func makeHand(cards cardArray) *hand {
+	// Sort the cards appropriately to make straight detection easier.
+	sort.Sort(cards)
+
 	ret := new(hand)
 	ret.cards = cards
 	var vals = make(map[int] int)
 	var suits = make(map[int] int)
-	var order []int
 	for i := range(cards) {
 		c := cards[i]
 		vals[c.val] = vals[c.val] + 1
@@ -324,30 +415,24 @@ func makeHand(cards []*card) *hand {
 		}
 	}
 	// check for straight flush
-	var orderedVals := make([]int, len(vals))
-	j := 0
-	for k,_ := range (vals) {
-		orderedVals[j] = k
-		j++
-	}
-	sort.SortInts(&orderedVals)
-	prev = -1
-	runLen = 0
-	for i := range(orderedVals) {
-		if (prev + 1 == orderedVals[i]) {
-			runLen++;
-		}
-		else {
+	runEnd := -1
+	runLen := 0
+	prev := -1
+	for i := range(cards) {
+		if (prev + 1 == cards[i].val) {
+			runEnd = cards[i].val
+			runLen++
+		} else {
 			runLen = 0
 		}
 	}
 	if ((runLen >= 5) && (ret.flushSuit != 0)) {
-		ret.val[0] = orderedVals[len(orderedVals) - 5]
+		ret.val[0] = runEnd
 		ret.ty = STRAIGHT_FLUSH
 		return ret
 	}
 
-	var freqs = make(map[int] []int)
+	freqs := make(map[int] []int)
 	for k,v := range(vals) {
 		if (v > 4) {
 			fmt.Printf("got %d of a kind for value %d (max is 4)\n", v, k)
@@ -356,12 +441,14 @@ func makeHand(cards []*card) *hand {
 		curFreqs := freqs[v]
 		m := 0
 		for m = 0; m < len(curFreqs); m++ {
-			if (curFreqs[m] >= k)
+			if (curFreqs[m] >= k) {
 				break
+			}
 		}
-		newFreqs := curFreqs[:m]
-		append(newFreqs, k)
-		append(newFreqs, curFreqs[m:])
+		newFreqs := make([]int, len(curFreqs) + 1)
+		copy(newFreqs, curFreqs[:m])
+		newFreqs[m] = k
+		copy(newFreqs[m+1:], curFreqs[m:])
 		freqs[v] = newFreqs
 	}
 
@@ -378,8 +465,7 @@ func makeHand(cards []*card) *hand {
 			ret.val[0] = freqs[3][0]
 			ret.val[1] = freqs[3][1]
 			ret.ty = FULL_HOUSE
-		}
-		else if (len(freqs[2]) > 0) {
+		} else if (len(freqs[2]) > 0) {
 			ret.val[0] = freqs[3][0]
 			ret.val[1] = freqs[2][0]
 			ret.ty = FULL_HOUSE
@@ -394,8 +480,7 @@ func makeHand(cards []*card) *hand {
 
 	// straight
 	if (runLen >= 5) {
-		// where does the straight start?
-		ret.val[0] = orderedVals[len(orderedVals) - 5]
+		ret.val[0] = runEnd
 		ret.ty = STRAIGHT
 		return ret
 	}
@@ -480,17 +565,18 @@ func main() {
 	var comb int64 = 31
 	switch (len(boardC)) {
 	case 0:
-		comb = 31
+		comb = remainingCardsToComb(5)
 	case 3:
-		comb = 3
+		comb = remainingCardsToComb(2)
 	case 4:
-		comb = 1
+		comb = remainingCardsToComb(1)
 	case 5:
-		comb = 0
+		comb = remainingCardsToComb(0)
 	default:
 		fmt.Printf("invalid board length %d\n", len(boardC))
 		os.Exit(1)
 	}
+	fmt.Printf("comb = %d", comb)
 	for ;nextCombination(&comb); {
 		handC := combinationToCards(comb, &allCards, &holeC, &boardC)
 		fmt.Printf("%d: %s\n", comb, cardsToStr(handC))

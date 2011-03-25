@@ -150,7 +150,6 @@ func strToCard(str string, cnt *int) (myCard *card) {
 				myCard.val = 1
 				parseState = PARSE_STATE_EAT_SUIT
 			default:
-				*cnt = -1
 				return nil
 			}
 		case parseState == PARSE_STATE_EAT_VAL_SAW_1:
@@ -159,7 +158,6 @@ func strToCard(str string, cnt *int) (myCard *card) {
 				myCard.val = 10
 				parseState = PARSE_STATE_EAT_SUIT
 			default:
-				*cnt = -1
 				return nil
 			}
 		case parseState == PARSE_STATE_EAT_SUIT:
@@ -173,7 +171,6 @@ func strToCard(str string, cnt *int) (myCard *card) {
 			case c == 'S':
 				myCard.suit = SPADES
 			default:
-				*cnt = -1
 				return nil
 			}
 			return myCard
@@ -216,9 +213,10 @@ func hasDuplicates(c []*card) *card {
 func strToCards(str string) (cards []*card, cnt int) {
 	for cnt = 0; cnt != -1; {
 		var c = strToCard(str, &cnt)
-		if (c != nil) {
-			cards = append(cards,c)
+		if (c == nil) {
+			return
 		}
+		cards = append(cards,c)
 	}
 	return
 }
@@ -290,8 +288,8 @@ func nextCombination(x *int64) bool {
 
 func combinationToCards(comb int64, allCards *[52]*card, holeC *[]*card,
 						boardC *[]*card) ([]*card) {
-	var ret []*card = make([]*card, 5)
-	copy(ret[:], *holeC)
+	var ret []*card = make([]*card, 7)
+	copy(ret, *holeC)
 	copy(ret[len(*holeC):], *boardC)
 	var n = len(*holeC) + len(*boardC)
 	for i := range(allCards) {
@@ -371,6 +369,7 @@ func (h hand) String() string {
 		ret += h.cards[c].String()
 		sep = ", "
 	}
+	ret += ")"
 
 	return ret
 }
@@ -386,6 +385,7 @@ func pow64(a int64, b uint) int64 {
 }
 
 func remainingCardsToComb(cur uint) int64 {
+	fmt.Printf("remainingCardsToComb, cur=%d\n", cur)
 	var rem uint
 	rem = 5 - cur
 	if (rem < 0) {
@@ -532,7 +532,7 @@ func main() {
 	holeC, errIdx := strToCards(*hole)
 	if (errIdx != -1) {
 		fmt.Printf("Error parsing your hole cards: parse error at character %d\n",
-				   errIdx)
+					errIdx)
 		os.Exit(1)
 	}
 
@@ -540,9 +540,12 @@ func main() {
 		fmt.Printf("Your hole cards: %s\n", cardsToStr(holeC));
 	}
 
+	fmt.Printf("board = %s\n", *board)
 	boardC, bErrIdx := strToCards(*board)
 	if (bErrIdx != -1) {
-		fmt.Printf("parse error at character %d\n", bErrIdx)
+		fmt.Printf("Error parsing the board: parse error at character %d\n",
+					bErrIdx)
+		os.Exit(1)
 	}
 	checkBoardLength(len(boardC))
 	if (*verbose) {
@@ -562,27 +565,338 @@ func main() {
 	var allCards [52]*card
 	generateAllCards(&allCards)
 
-	var comb int64 = 31
-	switch (len(boardC)) {
-	case 0:
-		comb = remainingCardsToComb(5)
-	case 3:
-		comb = remainingCardsToComb(2)
-	case 4:
-		comb = remainingCardsToComb(1)
-	case 5:
-		comb = remainingCardsToComb(0)
-	default:
+	remCards := 5 - len(boardC)
+	if (remCards < 0) {
 		fmt.Printf("invalid board length %d\n", len(boardC))
 		os.Exit(1)
 	}
-	fmt.Printf("comb = %d", comb)
+
+	choose 5 cards out of the hole + board + filler
+
+	// There will be 2 hole cards and 5 cards on the board, making 7 cards to
+	// choose from.
+	card_chooser := pow64(2, 7) - 1
+
+func do_combination(fixedCards []*card) {
+	// what can we choose from in our 'random picks'?
+	futureCards = allCards.deepcopy
+	futureCards.subtract(fixedCards)
+
+	numFutureCards = 5 - len(fixedCards)
+	iterateThroughFutureChoices {
+		fiveCards := make([]*card, 5)
+		copy(fiveCards, fixedCards)
+		for i := 0; i < numFutureCards; i++ {
+			for j := range(futureCards) {
+				if (((1 << uint(j)) & comb) != 0) {
+					ret[n] = &(*allCards[i])
+					n++
+					if (n >= 5) {
+						return ret
+					}
+				}
+			}
+		}
+	}
+	fmt.Printf("combinationToHand: logic error: got to unreachable point\n")
+	os.Exit(1)
+	return ret
+}
+
+const (
+	HIGH_CARD = iota
+	PAIR
+	TWO_PAIR
+	THREE_OF_A_KIND
+	STRAIGHT
+	FLUSH
+	FULL_HOUSE
+	FOUR_OF_A_KIND
+	STRAIGHT_FLUSH
+)
+
+type hand struct {
+	ty int
+	val [2]int
+	flushSuit int
+	cards []*card
+}
+
+func (h hand) String() string {
+	ret := "Hand(ty:"
+	switch (h.ty) {
+	case HIGH_CARD:
+		ret += "HIGH CARD"
+	case PAIR:
+		ret += "PAIR of "
+		ret += valToStr(h.val[0])
+	case TWO_PAIR:
+		ret += "TWO PAIR of "
+		ret += valToStr(h.val[0])
+		ret += " and "
+		ret += valToStr(h.val[1])
+	case THREE_OF_A_KIND:
+		ret += "THREE OF A KIND of "
+		ret += valToStr(h.val[0])
+	case STRAIGHT:
+		ret += "STRAIGHT with high of "
+		ret += valToStr(h.val[0])
+	case FLUSH:
+		ret += "FLUSH in "
+		ret += suitToStr(h.flushSuit)
+	case FULL_HOUSE:
+		ret += "FULL HOUSE of "
+		ret += valToStr(h.val[0])
+		ret += " full of "
+		ret += valToStr(h.val[1])
+	case FOUR_OF_A_KIND:
+		ret += "FOUR OF A KIND of "
+		ret += valToStr(h.val[0])
+	case STRAIGHT_FLUSH:
+		ret += "STRAIGHT FLUSH with high of "
+		ret += valToStr(h.val[0])
+		ret += " in "
+		ret += suitToStr(h.flushSuit)
+	}
+
+	ret += ", cards:"
+	sep := ""
+	for c := range(h.cards) {
+		ret += sep
+		ret += h.cards[c].String()
+		sep = ", "
+	}
+	ret += ")"
+
+	return ret
+}
+
+func pow64(a int64, b uint) int64 {
+	var ret int64
+	ret = 1
+	var i uint
+	for i = 0; i < b; i++ {
+		ret = ret * a
+	}
+	return ret
+}
+
+func remainingCardsToComb(cur uint) int64 {
+	fmt.Printf("remainingCardsToComb, cur=%d\n", cur)
+	var rem uint
+	rem = 5 - cur
+	if (rem < 0) {
+		panic("remainingCardsToComb: invalid argument")
+	}
+	return pow64(2, uint(rem)) - 1
+}
+
+func makeHand(cards cardArray) *hand {
+	// Sort the cards appropriately to make straight detection easier.
+	sort.Sort(cards)
+
+	ret := new(hand)
+	ret.cards = cards
+	var vals = make(map[int] int)
+	var suits = make(map[int] int)
+	for i := range(cards) {
+		c := cards[i]
+		vals[c.val] = vals[c.val] + 1
+		suits[c.suit] = vals[c.suit] + 1
+	}
+
+	// check for flush
+	for i := range(suits) {
+		if (suits[i] >= 4) {
+			ret.flushSuit = i
+		}
+	}
+	// check for straight flush
+	runEnd := -1
+	runLen := 0
+	prev := -1
+	for i := range(cards) {
+		if (prev + 1 == cards[i].val) {
+			runEnd = cards[i].val
+			runLen++
+		} else {
+			runLen = 0
+		}
+	}
+	if ((runLen >= 5) && (ret.flushSuit != 0)) {
+		ret.val[0] = runEnd
+		ret.ty = STRAIGHT_FLUSH
+		return ret
+	}
+
+	freqs := make(map[int] []int)
+	for k,v := range(vals) {
+		if (v > 4) {
+			fmt.Printf("got %d of a kind for value %d (max is 4)\n", v, k)
+			os.Exit(0)
+		}
+		curFreqs := freqs[v]
+		m := 0
+		for m = 0; m < len(curFreqs); m++ {
+			if (curFreqs[m] >= k) {
+				break
+			}
+		}
+		newFreqs := make([]int, len(curFreqs) + 1)
+		copy(newFreqs, curFreqs[:m])
+		newFreqs[m] = k
+		copy(newFreqs[m+1:], curFreqs[m:])
+		freqs[v] = newFreqs
+	}
+
+	// four of a kind
+	if (len(freqs[4]) > 0) {
+		ret.ty = FOUR_OF_A_KIND
+		ret.val[0] = freqs[4][0]
+		return ret
+	}
+
+	// full house
+	if (len(freqs[3]) > 0) {
+		if (len(freqs[3]) > 1) {
+			ret.val[0] = freqs[3][0]
+			ret.val[1] = freqs[3][1]
+			ret.ty = FULL_HOUSE
+		} else if (len(freqs[2]) > 0) {
+			ret.val[0] = freqs[3][0]
+			ret.val[1] = freqs[2][0]
+			ret.ty = FULL_HOUSE
+		}
+	}
+
+	// flush
+	if (ret.flushSuit != 0) {
+		ret.ty = FLUSH
+		return ret
+	}
+
+	// straight
+	if (runLen >= 5) {
+		ret.val[0] = runEnd
+		ret.ty = STRAIGHT
+		return ret
+	}
+
+	// three of a kind
+	if (len(freqs[3]) > 0) {
+		ret.val[0] = freqs[3][0]
+		ret.ty = THREE_OF_A_KIND
+		return ret
+	}
+
+	// two pairs
+	if (len(freqs[2]) >= 2) {
+		ret.val[0] = freqs[2][0]
+		ret.val[1] = freqs[2][1]
+		ret.ty = TWO_PAIR
+		return ret
+	}
+
+	// a pair
+	if (len(freqs[2]) >= 1) {
+		ret.val[0] = freqs[2][0]
+		ret.ty = PAIR
+		return ret
+	}
+
+	// I guess not.
+	ret.ty = HIGH_CARD
+	return ret
+}
+
+func main() {
+	flag.Usage = usage
+	var verbose = flag.Bool("v", false, "verbose")
+	var help = flag.Bool("h", false, "help")
+	var hole = flag.String("a", "", "your two hole cards")
+	var board = flag.String("b", "", "the board")
+	flag.Parse()
+
+	if (*help) {
+		usage()
+		os.Exit(0)
+	}
+	if (*hole == "") {
+		fmt.Printf("You must give two hole cards with -a\n")
+		usage()
+		os.Exit(1)
+	}
+	holeC, errIdx := strToCards(*hole)
+	if (errIdx != -1) {
+		fmt.Printf("Error parsing your hole cards: parse error at character %d\n",
+					errIdx)
+		os.Exit(1)
+	}
+
+	if (*verbose) {
+		fmt.Printf("Your hole cards: %s\n", cardsToStr(holeC));
+	}
+
+	fmt.Printf("board = %s\n", *board)
+	boardC, bErrIdx := strToCards(*board)
+	if (bErrIdx != -1) {
+		fmt.Printf("Error parsing the board: parse error at character %d\n",
+					bErrIdx)
+		os.Exit(1)
+	}
+	checkBoardLength(len(boardC))
+	if (*verbose) {
+		fmt.Printf("The board: %s\n", cardsToStr(boardC));
+	}
+
+	var c = make([]*card, len(boardC) + len(holeC))
+	copy(c, boardC)
+	copy(c[len(boardC):], holeC)
+	dupe := hasDuplicates(c)
+	if (dupe != nil) {
+		fmt.Printf("The card %s appears more than once!\n", dupe)
+		os.Exit(1)
+	}
+
+	// generate all cards
+	var allCards [52]*card
+	generateAllCards(&allCards)
+
+	remCards := 5 - len(boardC)
+	if (remCards < 0) {
+		fmt.Printf("invalid board length %d\n", len(boardC))
+		os.Exit(1)
+	}
+
+	choose 5 cards out of the hole + board + filler
+
+	// There will be 2 hole cards and 5 cards on the board, making 7 cards to
+	// choose from.
+	card_chooser := pow64(2, 7) - 1
+
+func do_combination(fixedCards []*card) {
+	// what can we choose from in our 'random picks'?
+	futureCards = allCards.deepcopy
+	futureCards.subtract(fixedCards)
+
+	numFutureCards = 5 - len(fixedCards)
+	fiveCards := make([]*card, 5)
+	copy(fiveCards, fixedCards)
+	for i := 0; i < numFutureCards; i++ {
+		
+		print hand
+	}
+}
+
+	do_combination(...)
+
+	comb := pow64(2, uint(remCards)) - 1
+	fmt.Printf("comb = %d, len(boardC)=%d\n", comb, len(boardC))
 	for ;nextCombination(&comb); {
 		handC := combinationToCards(comb, &allCards, &holeC, &boardC)
-		fmt.Printf("%d: %s\n", comb, cardsToStr(handC))
-		var hand = makeHand(handC)
-		if (hand != nil) {
-			fmt.Printf("%s", hand.String())
+		var h = makeHand(handC)
+		if (h != nil) {
+			fmt.Printf("%s\n", h.String())
 		}
 	}
 

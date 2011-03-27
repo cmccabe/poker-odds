@@ -166,7 +166,7 @@ func StrToCard(str string, cnt *int) (myCard *Card) {
 type CardSlice []*Card
 
 func (arr CardSlice) Compare(rhs CardSlice) int {
-	for idx := 0;; {
+	for idx := 0;;idx++ {
 		if (len(arr) <= idx) {
 			if (len(rhs) <= idx) {
 				return 0;

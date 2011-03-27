@@ -121,8 +121,9 @@ func MakeHand(cards CardSlice) *Hand {
 			// don't mean we don't have one.
 		} else {
 			// Clear the straight counter.
-			runLen = 0
+			runLen = 1
 		}
+		prev = cards[i].val
 	}
 	if ((runLen >= 5) && (h.flushSuit != -1)) {
 		h.val[0] = runEnd

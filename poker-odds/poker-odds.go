@@ -146,10 +146,9 @@ func main() {
 	}
 	checkHoleLength(len(hole))
 	if (*verbose) {
-		fmt.Printf("Your hole cards: %s\n", hole.String());
+		fmt.Printf("Your hole cards: '%s'\n", hole.String());
 	}
 	var board CardSlice
-	fmt.Printf("board = %s\n", *boardStr)
 	board, errIdx = StrToCards(*boardStr)
 	if (errIdx != -1) {
 		fmt.Printf("Error parsing the board: parse error at character %d\n",
@@ -158,7 +157,7 @@ func main() {
 	}
 	checkBoardLength(len(board))
 	if (*verbose) {
-		fmt.Printf("The board: %s\n", hole.String());
+		fmt.Printf("The board: '%s'\n", board.String());
 	}
 	var allInputs = make(CardSlice, len(board) + len(hole))
 	copy(allInputs, board)
@@ -180,14 +179,16 @@ func main() {
 		for i := range(setup) {
 			s := setup[i]
 			if (s < HOLE_SZ) {
+				//fmt.Printf("adding hole card %d\n", s)
 				handC[hIdx] = hole[s]
 				hIdx++
 			} else if (s < uint(HOLE_SZ + len(board))) {
+				//fmt.Printf("adding board card %d\n", s-HOLE_SZ)
 				handC[hIdx] = board[s - HOLE_SZ]
 				hIdx++
 			}
 		}
-		if (hIdx == HOLE_SZ) {
+		if (hIdx == BOARD_MAX + HOLE_SZ) {
 			h := MakeHand(handC)
 			processHand(h)
 		} else {

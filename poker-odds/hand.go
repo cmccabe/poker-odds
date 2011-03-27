@@ -51,6 +51,23 @@ type Hand struct {
 	cards CardSlice
 }
 
+func twc(a int, b int, alt int) int {
+	if (a < b) {
+		return -1
+	} else if (a > b) {
+		return 1
+	}
+	return alt
+}
+
+func (h *Hand) Compare(rhs *Hand) int {
+	return twc(h.ty, rhs.ty,
+		twc(h.val[0], rhs.val[0],
+			twc(h.val[1], rhs.val[1],
+				twc(h.flushSuit, rhs.flushSuit,
+					h.cards.Compare(rhs.cards)))))
+}
+
 func MakeHand(cards CardSlice) *Hand {
 	// Sort the cards appropriately to make straight detection easier.
 	sort.Sort(cards)

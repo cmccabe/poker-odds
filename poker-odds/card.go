@@ -165,6 +165,25 @@ func StrToCard(str string, cnt *int) (myCard *Card) {
 
 type CardSlice []*Card
 
+func (arr CardSlice) Compare(rhs CardSlice) int {
+	for idx := 0;; {
+		if (len(arr) <= idx) {
+			if (len(rhs) <= idx) {
+				return 0;
+			} else {
+				return -1;
+			}
+		} else if (len(rhs) <= idx) {
+			return 1;
+		}
+		c := arr[idx].Compare(rhs[idx])
+		if (c != 0) {
+			return c
+		}
+	}
+	return 0
+}
+
 func (arr CardSlice) Len() int {
 	return len(arr)
 }

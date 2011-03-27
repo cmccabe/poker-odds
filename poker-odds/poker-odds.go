@@ -14,7 +14,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pokerodds
+package main
+
+import . "pokerodds"
 
 import (
 	"flag"

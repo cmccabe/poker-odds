@@ -193,7 +193,7 @@ func MakeHand(cards CardSlice) *Hand {
 	return h
 }
 
-func (h Hand) String() string {
+func (h *Hand) String() string {
 	ret := "Hand(ty:"
 	switch (h.ty) {
 	case HIGH_CARD:

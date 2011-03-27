@@ -78,7 +78,7 @@ func MakeHand(cards CardSlice) *Hand {
 	for i := range(cards) {
 		c := cards[i]
 		vals[c.val] = vals[c.val] + 1
-		suits[c.suit] = vals[c.suit] + 1
+		suits[c.suit] = suits[c.suit] + 1
 	}
 
 	// check for flush

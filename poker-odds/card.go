@@ -53,7 +53,7 @@ type Card struct {
 	suit int
 }
 
-func valToStr(v int) (string) {
+func cardValToStr(v int) (string) {
 	switch {
 	case v == 11:
 		return "J"
@@ -82,12 +82,13 @@ func suitToStr(s int) (string) {
 }
 
 func (c *Card) String() string {
-	return fmt.Sprintf("%s%s", valToStr(c.val), suitToStr(c.suit))
+	return fmt.Sprintf("%s%s", cardValToStr(c.val), suitToStr(c.suit))
 }
 
-// It's important that the cards compare in this order. It makes detecting
-// straights easier because cards of a similar value (as opposed to suit) are
-// adjacent. Don't change this sort order without updating hand.go
+/* It's important that the cards compare in this order. It makes detecting
+ * straights easier because cards of a similar value (as opposed to suit) are
+ * adjacent. Don't change this sort order without updating hand.go
+ */
 func (p *Card) Compare(rhs *Card) int {
 	if (p.suit < rhs.suit) {
 		return -1;
@@ -165,24 +166,30 @@ func StrToCard(str string, cnt *int) (myCard *Card) {
 
 type CardSlice []*Card
 
-func (arr CardSlice) Compare(rhs CardSlice) int {
-	for idx := 0;;idx++ {
-		if (len(arr) <= idx) {
-			if (len(rhs) <= idx) {
-				return 0;
-			} else {
-				return -1;
-			}
-		} else if (len(rhs) <= idx) {
-			return 1;
-		}
-		c := arr[idx].Compare(rhs[idx])
-		if (c != 0) {
-			return c
-		}
-	}
-	return 0
-}
+/* This function is used to break ties between different hands.
+ * card.
+ */
+//func (arr CardSlice) GetHandTieBreaker(rhs CardSlice) int {
+//	a = len(arr) - 1
+//	b = len(rhs) - 1
+//	for ;; {
+//		if (a < 0) {
+//			if (b < 0) {
+//				return 0;
+//			}
+//			else {
+//				return -1;
+//			}
+//		} else if (b < 0) {
+//			return 1;
+//		}
+//		c := arr[a].Compare(rhs[b])
+//		if (c != 0) {
+//			return c
+//		}
+//	}
+//	return 0
+//}
 
 func (arr CardSlice) Len() int {
 	return len(arr)

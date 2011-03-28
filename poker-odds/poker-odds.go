@@ -22,6 +22,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"sort"
 )
 
 const BOARD_MAX = 5
@@ -89,6 +90,50 @@ func intsToStr(s []int) (string) {
 
 func processHand(h *Hand) {
 	fmt.Printf("%s\n", h.String())
+}
+
+type resultSet struct {
+	handTy map[int] int64
+	bestHands HandSlice
+}
+
+func makeResultSet(numBestHands int) *resultSet {
+	ret := new(resultSet)
+	ret.handTy = make(map[int] int64)
+	ret.bestHands = make(HandSlice, numBestHands + 1)
+	for i := 0; i < numBestHands; i++ {
+		ret.bestHands[i] = GetMinHand()
+	}
+	return ret
+}
+
+func (results *resultSet) addHand(h *Hand) {
+	results.handTy[h.GetTy()] = results.handTy[h.GetTy()] + 1
+	results.bestHands[len(results.bestHands)-1] = h
+	sort.Sort(results.bestHands)
+	results.bestHands[len(results.bestHands)-1] = nil
+}
+
+func (results *resultSet) String() string {
+	var totalHands int64
+	totalHands = 0
+	for i := range(results.handTy) {
+		totalHands = totalHands + results.handTy[i]
+	}
+
+	ret := ""
+	for i := range(results.handTy) {
+		percent := float(results.handTy[i])
+		percent /= float(totalHands);
+		ret += fmt.Sprintf("%03f%% chance of %s\n", percent, HandTyToStr(i))
+	}
+	ret += "\n";
+	ret += "Best hands:\n"
+	for i := 0; i < len(results.bestHands)-1; i++ {
+		ret += results.bestHands[i].String()
+		ret += "\n"
+	}
+	return ret
 }
 
 /* Assumptions: we are the only players in the game
@@ -170,6 +215,7 @@ func main() {
 	}
 
 	///// Parse and validate user input ///// 
+	results := makeResultSet(5)
 	fullFuture := Make52CardBag()
 	setupChooser := NewSubsetChooser(BOARD_MAX + HOLE_SZ, HAND_SZ)
 	for ;; {
@@ -190,7 +236,7 @@ func main() {
 		}
 		if (hIdx == BOARD_MAX + HOLE_SZ) {
 			h := MakeHand(handC)
-			processHand(h)
+			results.addHand(h)
 		} else {
 			future := fullFuture.Clone()
 			for i := 0; i < hIdx; i++ {
@@ -206,7 +252,7 @@ func main() {
 					j++
 				}
 				h := MakeHand(handC)
-				processHand(h)
+				results.addHand(h)
 				if (!futureChooser.Next()) {
 					break
 				}
@@ -216,4 +262,5 @@ func main() {
 			break
 		}
 	}
+	fmt.Printf("results:\n%s\n", results.String())
 }

@@ -44,6 +44,32 @@ const (
 	STRAIGHT_FLUSH
 )
 
+func HandTyToStr(ty int) string {
+	switch (ty) {
+	case HIGH_CARD:
+		return "nothing"
+	case PAIR:
+		return "a pair"
+	case TWO_PAIR:
+		return "two pair"
+	case THREE_OF_A_KIND:
+		return "three of a kind"
+	case STRAIGHT:
+		return "a straight"
+	case FLUSH:
+		return "a flush"
+	case FULL_HOUSE:
+		return "a full house"
+	case FOUR_OF_A_KIND:
+		return "four of a kind"
+	case STRAIGHT_FLUSH:
+		return "a straight flush"
+	default:
+		panic(fmt.Sprintf("unexpected hand type %d", ty))
+	}
+	return ""
+}
+
 type Hand struct {
 	ty int
 	val [2]int
@@ -60,12 +86,46 @@ func twc(a int, b int, alt int) int {
 	return alt
 }
 
+func (h *Hand) GetTy() int {
+	return h.ty
+}
+
+type HandSlice []*Hand
+
+func (hs HandSlice) Len() int {
+	return len(hs)
+}
+
+func (hs HandSlice) Less(i, j int) bool {
+	if (hs[i] == nil) {
+		if (hs[j] == nil) {
+			return false;
+		} else {
+			return true;
+		}
+	} else if (hs[j] == nil) {
+		return false;
+	}
+	 c := hs[i].PokerHandTieBreaker(hs[j])
+}
+
+func (hs HandSlice) Swap(i, j int) {
+	hs[i], hs[j] = hs[j], hs[i]
+}
+
 func (h *Hand) Compare(rhs *Hand) int {
 	return twc(h.ty, rhs.ty,
 		twc(h.val[0], rhs.val[0],
 			twc(h.val[1], rhs.val[1],
 				twc(h.flushSuit, rhs.flushSuit,
-					h.cards.Compare(rhs.cards)))))
+					h.cards.CompareAsPokerHand(rhs.cards)))))
+}
+
+type Hand struct {
+	ty int
+	val [2]int
+	flushSuit int
+	cards CardSlice
 }
 
 func MakeHand(cards CardSlice) *Hand {
@@ -218,32 +278,32 @@ func (h *Hand) String() string {
 		ret += "HIGH CARD"
 	case PAIR:
 		ret += "PAIR of "
-		ret += valToStr(h.val[0])
+		ret += cardValToStr(h.val[0])
 	case TWO_PAIR:
 		ret += "TWO PAIR of "
-		ret += valToStr(h.val[0])
+		ret += cardValToStr(h.val[0])
 		ret += " and "
-		ret += valToStr(h.val[1])
+		ret += cardValToStr(h.val[1])
 	case THREE_OF_A_KIND:
 		ret += "THREE OF A KIND of "
-		ret += valToStr(h.val[0])
+		ret += cardValToStr(h.val[0])
 	case STRAIGHT:
 		ret += "STRAIGHT with high of "
-		ret += valToStr(h.val[0])
+		ret += cardValToStr(h.val[0])
 	case FLUSH:
 		ret += "FLUSH in "
 		ret += suitToStr(h.flushSuit)
 	case FULL_HOUSE:
 		ret += "FULL HOUSE of "
-		ret += valToStr(h.val[0])
+		ret += cardValToStr(h.val[0])
 		ret += " full of "
-		ret += valToStr(h.val[1])
+		ret += cardValToStr(h.val[1])
 	case FOUR_OF_A_KIND:
 		ret += "FOUR OF A KIND of "
-		ret += valToStr(h.val[0])
+		ret += cardValToStr(h.val[0])
 	case STRAIGHT_FLUSH:
 		ret += "STRAIGHT FLUSH with high of "
-		ret += valToStr(h.val[0])
+		ret += cardValToStr(h.val[0])
 		ret += " in "
 		ret += suitToStr(h.flushSuit)
 	}

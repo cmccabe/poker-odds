@@ -17,15 +17,36 @@
 package pokerodds
 
 import (
+	"fmt"
 	"testing"
 )
 
 func expectHand(t *testing.T, c CardSlice, eTy int, eVal [2]int, eFlushSuit int) {
 	aHand := MakeHand(c)
 	eHand := &Hand { eTy, eVal, eFlushSuit, c }
-	if (aHand.Compare(eHand) != 0) {
+	if (!aHand.Identical(eHand)) {
 		t.Errorf("expected MakeHand to create: %s.\n" +
 				"Instead, it created: %s", eHand, aHand)
+	}
+}
+
+func cvalToString(cval int) string {
+	switch (cval) {
+	case -1:
+		return "less than"
+	case 0:
+		return "equal to"
+	case 1:
+		return "greater than"
+	}
+	panic(fmt.Sprintf("unknown cval %d", cval))
+}
+
+func compareHands(t *testing.T, eRes int, a *Hand, b *Hand) {
+	aRes := a.Compare(b)
+	if (aRes != eRes) {
+		t.Errorf("expected hand:\n%s\nto be %s hand:\n%s, but it was " +
+				 "marked as %s", a, cvalToString(eRes), b, cvalToString(aRes))
 	}
 }
 
@@ -49,4 +70,14 @@ func TestHand1(t *testing.T) {
 	c5 := CardSlice { &Card{8, CLUBS}, &Card{9, DIAMONDS}, &Card{2, HEARTS},
 					&Card{KING_VAL, DIAMONDS}, &Card{ACE_VAL, CLUBS} }
 	expectHand(t, c5, HIGH_CARD, [2]int{-1, -1}, -1)
+
+	compareHands(t, 1, MakeHand(CardSlice { &Card{8, DIAMONDS}, &Card{9, DIAMONDS},
+		&Card{10, DIAMONDS}, &Card{QUEEN_VAL, DIAMONDS}, &Card{JACK_VAL, DIAMONDS} }),
+			MakeHand(CardSlice { &Card{8, DIAMONDS}, &Card{7, DIAMONDS},
+		&Card{10, DIAMONDS}, &Card{QUEEN_VAL, DIAMONDS}, &Card{JACK_VAL, DIAMONDS} }))
+
+	compareHands(t, -1, MakeHand(CardSlice { &Card{10, DIAMONDS}, &Card{KING_VAL, DIAMONDS},
+		&Card{10, CLUBS}, &Card{QUEEN_VAL, DIAMONDS}, &Card{JACK_VAL, DIAMONDS} }),
+			MakeHand(CardSlice { &Card{8, DIAMONDS}, &Card{7, DIAMONDS},
+		&Card{10, DIAMONDS}, &Card{QUEEN_VAL, DIAMONDS}, &Card{JACK_VAL, DIAMONDS} }))
 }

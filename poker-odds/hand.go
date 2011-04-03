@@ -110,7 +110,7 @@ func (h *Hand) GetTy() int {
 	return h.ty
 }
 
-/* Compare two Hands.
+/* Compare two Hands using poker rules.
  *
  * This will return 0 sometimes even when the two Hands are not identical. This
  * reflects the way poker works.
@@ -123,6 +123,18 @@ func (h *Hand) Compare(rhs *Hand) int {
 		c = h.cards.CompareKicker(rhs.cards)
 	}
 	return c
+}
+
+/* Return true if two hands are identical.
+ */
+func (h *Hand) Identical(rhs *Hand) bool {
+	c := twc(h.ty, rhs.ty,
+		twc(h.val[0], rhs.val[0],
+			twc(h.val[1], rhs.val[1], 0)))
+	if (c != 0) {
+		return false
+	}
+	return h.cards.Identical(rhs.cards)
 }
 
 func MakeHand(cards CardSlice) *Hand {
@@ -140,7 +152,7 @@ func MakeHand(cards CardSlice) *Hand {
 
 	// check for flush
 	for i := range(suits) {
-		if (suits[i] >= 4) {
+		if (suits[i] >= 5) {
 			h.flushSuit = i
 		}
 	}

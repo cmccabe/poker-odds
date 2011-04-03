@@ -200,8 +200,22 @@ func (arr CardSlice) CompareKicker(rhs CardSlice) int {
 			return 1;
 		}
 		// ignore suit!
+		a--
+		b--
 	}
 	return 0
+}
+
+func (arr CardSlice) Identical(rhs CardSlice) bool {
+	if (len(arr) != len(rhs)) {
+		return false
+	}
+	for i := range(arr) {
+		if ((arr[i].val != arr[i].val) || (arr[i].suit != arr[i].suit)) {
+			return false
+		}
+	}
+	return true
 }
 
 func (arr CardSlice) Len() int {

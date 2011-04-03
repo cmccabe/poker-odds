@@ -166,30 +166,43 @@ func StrToCard(str string, cnt *int) (myCard *Card) {
 
 type CardSlice []*Card
 
-/* This function is used to break ties between different hands.
- * card.
+/* In poker, the 'kicker' breaks ties between hands of the same type.
+ * An example:
+ * Hand1: 6D QC QS KS KC      Kicker: 6D
+ * Hand2: 9H QH QD KC KS      Kicker: 9H (wins)
+ *
+ * Hand1: 6D 8C 9S JS JC      Kicker: 6D 8C 9S
+ * Hand2: 2H 3H 10D JD JH     Kicker: 2H 3H 10D (wins)
+ *
+ * Kickers are compared in lexicographical order, starting with the highest
+ * valued card. Suit is irrelevant; only card value matters.
+ *
+ * This function can return 0 even if the two CardSlices are different.
  */
-//func (arr CardSlice) GetHandTieBreaker(rhs CardSlice) int {
-//	a = len(arr) - 1
-//	b = len(rhs) - 1
-//	for ;; {
-//		if (a < 0) {
-//			if (b < 0) {
-//				return 0;
-//			}
-//			else {
-//				return -1;
-//			}
-//		} else if (b < 0) {
-//			return 1;
-//		}
-//		c := arr[a].Compare(rhs[b])
-//		if (c != 0) {
-//			return c
-//		}
-//	}
-//	return 0
-//}
+func (arr CardSlice) CompareKicker(rhs CardSlice) int {
+	var a int // needs to be signed
+	var b int
+	a = len(arr) - 1
+	b = len(rhs) - 1
+	for ;; {
+		if (a < 0) {
+			if (b < 0) {
+				return 0;
+			} else {
+				return -1;
+			}
+		} else if (b < 0) {
+			return 1;
+		}
+		if (arr[a].val < arr[b].val) {
+			return -1;
+		} else if (arr[a].val > arr[b].val) {
+			return 1;
+		}
+		// ignore suit!
+	}
+	return 0
+}
 
 func (arr CardSlice) Len() int {
 	return len(arr)

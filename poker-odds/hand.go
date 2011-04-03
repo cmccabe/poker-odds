@@ -44,6 +44,22 @@ const (
 	STRAIGHT_FLUSH
 )
 
+func twc(a int, b int, alt int) int {
+	if (a < b) {
+		return -1
+	} else if (a > b) {
+		return 1
+	}
+	return alt
+}
+
+type Hand struct {
+	ty int
+	val [2]int
+	flushSuit int
+	cards CardSlice
+}
+
 func HandTyToStr(ty int) string {
 	switch (ty) {
 	case HIGH_CARD:
@@ -70,62 +86,43 @@ func HandTyToStr(ty int) string {
 	return ""
 }
 
-type Hand struct {
-	ty int
-	val [2]int
-	flushSuit int
-	cards CardSlice
-}
-
-func twc(a int, b int, alt int) int {
-	if (a < b) {
-		return -1
-	} else if (a > b) {
-		return 1
-	}
-	return alt
+func handTyHasKicker(ty int) bool {
+	/* For a HIGH_CARD hand, all 5 cards can be considered the kicker. Most
+	 * poker players wouldn't use the terminology this way, but it works for
+	 * our purposes.
+	 *
+	 * Similarly, when comparing two flushes, you can just consider the
+	 * entirety of both hands as the kicker.
+	 *
+	 * Another thing:
+	 * In an actual game you never compare the kickers of two THREE_OF_A_KIND
+	 * or FOUR_OF_A_KIND hands, since there are only 52 cards in the deck, and
+	 * you can't make two such hands with identical values. However, in the
+	 * abstract, these hands do have a kicker and we sometimes need to use it.
+	 *
+	 * The only hands where we really know that comparing the kicker would be
+	 * useless are FULL_HOUSE, STRAIGHT, and STRAIGHT_FLUSH.
+	 */
+	return (!((ty == FULL_HOUSE) || (ty == STRAIGHT) || (ty == STRAIGHT_FLUSH)))
 }
 
 func (h *Hand) GetTy() int {
 	return h.ty
 }
 
-type HandSlice []*Hand
-
-func (hs HandSlice) Len() int {
-	return len(hs)
-}
-
-func (hs HandSlice) Less(i, j int) bool {
-	if (hs[i] == nil) {
-		if (hs[j] == nil) {
-			return false;
-		} else {
-			return true;
-		}
-	} else if (hs[j] == nil) {
-		return false;
-	}
-	 c := hs[i].PokerHandTieBreaker(hs[j])
-}
-
-func (hs HandSlice) Swap(i, j int) {
-	hs[i], hs[j] = hs[j], hs[i]
-}
-
+/* Compare two Hands.
+ *
+ * This will return 0 sometimes even when the two Hands are not identical. This
+ * reflects the way poker works.
+ */
 func (h *Hand) Compare(rhs *Hand) int {
-	return twc(h.ty, rhs.ty,
+	c := twc(h.ty, rhs.ty,
 		twc(h.val[0], rhs.val[0],
-			twc(h.val[1], rhs.val[1],
-				twc(h.flushSuit, rhs.flushSuit,
-					h.cards.CompareAsPokerHand(rhs.cards)))))
-}
-
-type Hand struct {
-	ty int
-	val [2]int
-	flushSuit int
-	cards CardSlice
+			twc(h.val[1], rhs.val[1], 0)))
+	if ((c == 0) && (handTyHasKicker(h.ty))) {
+		c = h.cards.CompareKicker(rhs.cards)
+	}
+	return c
 }
 
 func MakeHand(cards CardSlice) *Hand {
@@ -194,8 +191,8 @@ func MakeHand(cards CardSlice) *Hand {
 	freqs := make(map[int] []int)
 	for k,v := range(vals) {
 		if (v > 4) {
-			panic(fmt.Sprintf("got %d of a kind for value %d (max is 4)\n",
-				v, k))
+			panic(fmt.Sprintf("on hand %s, got %d of a kind for value %d (max is 4)\n",
+				cards.String(), v, k))
 		}
 		curFreqs := freqs[v]
 		m := 0
@@ -319,3 +316,28 @@ func (h *Hand) String() string {
 
 	return ret
 }
+
+type HandSlice []*Hand
+
+func (hs HandSlice) Len() int {
+	return len(hs)
+}
+
+func (hs HandSlice) Less(i, j int) bool {
+	if (hs[i] == nil) {
+		if (hs[j] == nil) {
+			return false
+		} else {
+			return true
+		}
+	} else if (hs[j] == nil) {
+		return false
+	}
+	c := hs[i].Compare(hs[j])
+	return (c < 0)
+}
+
+func (hs HandSlice) Swap(i, j int) {
+	hs[i], hs[j] = hs[j], hs[i]
+}
+

@@ -101,17 +101,15 @@ func makeResultSet(numBestHands int) *resultSet {
 	ret := new(resultSet)
 	ret.handTy = make(map[int] int64)
 	ret.bestHands = make(HandSlice, numBestHands + 1)
-	for i := 0; i < numBestHands; i++ {
-		ret.bestHands[i] = GetMinHand()
-	}
 	return ret
 }
 
 func (results *resultSet) addHand(h *Hand) {
 	results.handTy[h.GetTy()] = results.handTy[h.GetTy()] + 1
-	results.bestHands[len(results.bestHands)-1] = h
+	lastSlot := len(results.bestHands)-1
+	results.bestHands[lastSlot] = h
 	sort.Sort(results.bestHands)
-	results.bestHands[len(results.bestHands)-1] = nil
+	results.bestHands[lastSlot] = nil
 }
 
 func (results *resultSet) String() string {

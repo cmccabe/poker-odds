@@ -71,6 +71,10 @@ func TestHand1(t *testing.T) {
 					&Card{KING_VAL, DIAMONDS}, &Card{ACE_VAL, CLUBS} }
 	expectHand(t, c5, HIGH_CARD, [2]int{-1, -1}, -1)
 
+	c6 := CardSlice { &Card{2, DIAMONDS}, &Card{2, CLUBS}, &Card{2, HEARTS},
+					&Card{3, DIAMONDS}, &Card{ACE_VAL, DIAMONDS} }
+	expectHand(t, c6, THREE_OF_A_KIND, [2]int{2, -1}, -1)
+
 	compareHands(t, 1, MakeHand(CardSlice { &Card{8, DIAMONDS}, &Card{9, DIAMONDS},
 		&Card{10, DIAMONDS}, &Card{QUEEN_VAL, DIAMONDS}, &Card{JACK_VAL, DIAMONDS} }),
 			MakeHand(CardSlice { &Card{8, DIAMONDS}, &Card{7, DIAMONDS},

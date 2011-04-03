@@ -106,10 +106,15 @@ func makeResultSet(numBestHands int) *resultSet {
 
 func (results *resultSet) addHand(h *Hand) {
 	results.handTy[h.GetTy()] = results.handTy[h.GetTy()] + 1
-	lastSlot := len(results.bestHands)-1
-	results.bestHands[lastSlot] = h
+	for i := range(results.bestHands) {
+		if ((results.bestHands[i] != nil) &&
+				h.Identical(results.bestHands[i])) {
+			return
+		}
+	}
+	results.bestHands[0] = h
 	sort.Sort(results.bestHands)
-	results.bestHands[lastSlot] = nil
+	results.bestHands[0] = nil
 }
 
 func (results *resultSet) String() string {
@@ -122,14 +127,18 @@ func (results *resultSet) String() string {
 	ret := ""
 	for i := range(results.handTy) {
 		percent := float(results.handTy[i])
+		percent *= 100.0
 		percent /= float(totalHands);
 		ret += fmt.Sprintf("%03f%% chance of %s\n", percent, HandTyToStr(i))
 	}
 	ret += "\n";
 	ret += "Best hands:\n"
 	for i := 0; i < len(results.bestHands)-1; i++ {
-		ret += results.bestHands[i].String()
-		ret += "\n"
+		h := results.bestHands[i]
+		if (h != nil) {
+			ret += results.bestHands[i].String()
+			ret += "\n"
+		}
 	}
 	return ret
 }
@@ -215,24 +224,29 @@ func main() {
 	///// Parse and validate user input ///// 
 	results := makeResultSet(5)
 	fullFuture := Make52CardBag()
-	setupChooser := NewSubsetChooser(BOARD_MAX + HOLE_SZ, HAND_SZ)
+	setupChooser := NewSubsetChooser(HOLE_SZ + BOARD_MAX - 1, HAND_SZ)
 	for ;; {
 		handC := make(CardSlice, HAND_SZ)
 		hIdx := 0
 		setup := setupChooser.Cur()
 		for i := range(setup) {
 			s := setup[i]
+			//fmt.Print(s)
 			if (s < HOLE_SZ) {
 				//fmt.Printf("adding hole card %d\n", s)
 				handC[hIdx] = hole[s]
 				hIdx++
+				//fmt.Printf("choosing card %d from hole\n", s)
 			} else if (s < uint(HOLE_SZ + len(board))) {
 				//fmt.Printf("adding board card %d\n", s-HOLE_SZ)
 				handC[hIdx] = board[s - HOLE_SZ]
+				//fmt.Printf("choosing card %d from board\n", s-HOLE_SZ)
 				hIdx++
+			} else {
+				//fmt.Printf("choosing NONE\n")
 			}
 		}
-		if (hIdx == BOARD_MAX + HOLE_SZ) {
+		if (hIdx == HOLE_SZ + BOARD_MAX) {
 			h := MakeHand(handC)
 			results.addHand(h)
 		} else {
@@ -240,7 +254,7 @@ func main() {
 			for i := 0; i < hIdx; i++ {
 				future.Subtract(handC[i])
 			}
-			futureChooser := NewSubsetChooser(uint(future.Len()),
+			futureChooser := NewSubsetChooser(uint(future.Len() - 1),
 											  uint(HAND_SZ - hIdx))
 			for ;; {
 				futureC := futureChooser.Cur()

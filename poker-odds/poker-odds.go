@@ -112,6 +112,7 @@ func (results *resultSet) addHand(h *Hand) {
 			return
 		}
 	}
+
 	results.bestHands[0] = h
 	sort.Sort(results.bestHands)
 	results.bestHands[0] = nil
@@ -133,7 +134,7 @@ func (results *resultSet) String() string {
 	}
 	ret += "\n";
 	ret += "Best hands:\n"
-	for i := 0; i < len(results.bestHands)-1; i++ {
+	for i := len(results.bestHands)-1; i > 0; i-- {
 		h := results.bestHands[i]
 		if (h != nil) {
 			ret += results.bestHands[i].String()
@@ -224,7 +225,7 @@ func main() {
 	///// Parse and validate user input ///// 
 	results := makeResultSet(5)
 	fullFuture := Make52CardBag()
-	setupChooser := NewSubsetChooser(HOLE_SZ + BOARD_MAX - 1, HAND_SZ)
+	setupChooser := NewSubsetChooser(HOLE_SZ + BOARD_MAX, HAND_SZ)
 	for ;; {
 		handC := make(CardSlice, HAND_SZ)
 		hIdx := 0

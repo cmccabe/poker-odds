@@ -53,6 +53,10 @@ type Card struct {
 	suit int
 }
 
+func (p Card) Copy() *Card {
+	return &Card { p.val, p.suit }
+}
+
 func cardValToStr(v int) (string) {
 	switch {
 	case v == 11:
@@ -165,6 +169,14 @@ func StrToCard(str string, cnt *int) (myCard *Card) {
 }
 
 type CardSlice []*Card
+
+func (arr CardSlice) Copy() CardSlice {
+	ret := make(CardSlice, len(arr))
+	for i := range(arr) {
+		ret[i] = arr[i].Copy()
+	}
+	return ret
+}
 
 /* In poker, the 'kicker' breaks ties between hands of the same type.
  * An example:

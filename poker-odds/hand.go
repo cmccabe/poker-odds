@@ -137,7 +137,8 @@ func (h *Hand) Identical(rhs *Hand) bool {
 	return h.cards.Identical(rhs.cards)
 }
 
-func MakeHand(cards CardSlice) *Hand {
+func MakeHandImpl(cardsIn CardSlice) *Hand {
+	cards := cardsIn.Copy()
 	// Sort the cards appropriately to make straight detection easier.
 	sort.Sort(cards)
 
@@ -279,6 +280,13 @@ func MakeHand(cards CardSlice) *Hand {
 	h.ty = HIGH_CARD
 	return h
 }
+
+func MakeHand(cards CardSlice) *Hand {
+	ret := MakeHandImpl(cards)
+	fmt.Printf("input: %s\n.output:%s\n", cards, ret)
+	return ret
+}
+
 
 func (h *Hand) String() string {
 	ret := "Hand(ty:"

@@ -283,7 +283,7 @@ func MakeHandImpl(cardsIn CardSlice) *Hand {
 
 func MakeHand(cards CardSlice) *Hand {
 	ret := MakeHandImpl(cards)
-	fmt.Printf("input: %s\n.output:%s\n", cards, ret)
+	//fmt.Printf("input: %s\n.output:%s\n", cards, ret)
 	return ret
 }
 

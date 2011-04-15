@@ -3,6 +3,7 @@ include $(GOROOT)/src/Make.inc
 TARG=pokerodds
 GOFILES= \
 	card.go \
+	cardSliceProcessor.go \
 	cardBag.go \
 	hand.go \
 	resultSet.go \

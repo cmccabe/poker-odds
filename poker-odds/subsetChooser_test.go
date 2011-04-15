@@ -120,4 +120,6 @@ func TestSubsetChooser1(t *testing.T) {
 	test(t, 3, 1, &uintSliceSlice{ {0}, {1}, {2} } )
 	test(t, 3, 3, &uintSliceSlice{ {0, 1, 2} } )
 	test(t, 4, 3, &uintSliceSlice{ {0, 1, 2}, {0, 1, 3}, {0, 2, 3}, {1, 2, 3} } )
+
+	test(t, 100, 0, &uintSliceSlice{ {} })
 }

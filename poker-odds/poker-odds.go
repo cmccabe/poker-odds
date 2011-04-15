@@ -24,9 +24,7 @@ import (
 	"os"
 )
 
-const BOARD_MAX = 5
-
-const HOLE_SZ = 2
+const NUM_CARD_SLICE_PROCESSORS = 5
 
 func usage() {
 	fmt.Fprintf(os.Stderr,
@@ -159,68 +157,56 @@ func main() {
 	if (*verbose) {
 		fmt.Printf("The board: '%s'\n", board.String());
 	}
-	var allInputs = make(CardSlice, len(board) + len(hole))
-	copy(allInputs, board)
-	copy(allInputs[len(board):], hole)
-	dupe := allInputs.HasDuplicates()
+	base := make(CardSlice, len(board) + len(hole))
+	copy(base, board)
+	copy(base[len(board):], hole)
+	dupe := base.HasDuplicates()
 	if (dupe != nil) {
 		fmt.Printf("The card %s appears more than once in your input! " +
 			"That is not possible.\n", dupe)
 		os.Exit(1)
 	}
 
-	///// Parse and validate user input ///// 
-	results := new(ResultSet)
-	fullFuture := Make52CardBag()
-	setupChooser := NewSubsetChooser(HOLE_SZ + BOARD_MAX, HAND_SZ)
+	///// Process cards ///// 
+	csps := make([]*CardSliceProcessor, NUM_CARD_SLICE_PROCESSORS)
+	for i := range(csps) {
+		csps[i] = NewCardSliceProcessor(base)
+	}
+
+	future := Make52CardBag()
+	for i := range(base) {
+		future.Subtract(base[i])
+	}
+	numFutureCards := SPREAD_MAX - len(base)
+	futureChooser := NewSubsetChooser(uint(future.Len() - 1), uint(numFutureCards))
+	cspIdx := 0
 	for ;; {
-		handC := make(CardSlice, HAND_SZ)
-		hIdx := 0
-		setup := setupChooser.Cur()
-		for i := range(setup) {
-			s := setup[i]
-			//fmt.Print(s)
-			if (s < HOLE_SZ) {
-				//fmt.Printf("adding hole card %d\n", s)
-				handC[hIdx] = hole[s]
-				hIdx++
-				//fmt.Printf("choosing card %d from hole\n", s)
-			} else if (s < uint(HOLE_SZ + len(board))) {
-				//fmt.Printf("adding board card %d\n", s-HOLE_SZ)
-				handC[hIdx] = board[s - HOLE_SZ]
-				//fmt.Printf("choosing card %d from board\n", s-HOLE_SZ)
-				hIdx++
-			} else {
-				//fmt.Printf("choosing NONE\n")
-			}
+		futureC := futureChooser.Cur()
+		for i := 0; i < numFutureCards; i++ {
+			csps[cspIdx].Card <- future.Get(futureC[i])
 		}
-		if (hIdx == HOLE_SZ + BOARD_MAX) {
-			h := MakeHand(handC)
-			results.AddHand(h)
-		} else {
-			future := fullFuture.Clone()
-			for i := 0; i < hIdx; i++ {
-				future.Subtract(handC[i])
-			}
-			futureChooser := NewSubsetChooser(uint(future.Len() - 1),
-											  uint(HAND_SZ - hIdx))
-			for ;; {
-				futureC := futureChooser.Cur()
-				j := 0
-				for i := hIdx; i < HAND_SZ; i++ {
-					handC[i] = future.Get(futureC[j])
-					j++
-				}
-				h := MakeHand(handC)
-				results.AddHand(h)
-				if (!futureChooser.Next()) {
-					break
-				}
-			}
+		cspIdx++
+		if (cspIdx > NUM_CARD_SLICE_PROCESSORS) {
+			cspIdx = 0
 		}
-		if (!setupChooser.Next()) {
+		if (!futureChooser.Next()) {
 			break
 		}
 	}
-	fmt.Printf("results:\n%s\n", results.String())
+
+	// Tell cardSliceProcessors to finish
+	for i := range(csps) {
+		csps[i].Quit <- true
+	}
+
+	// Once each cardSliceProcessor is finished, get its results
+	// Merge all results together
+	allResults := new(ResultSet)
+	for i := range(csps) {
+		<-csps[i].Finished
+		allResults.MergeResultSet(&csps[i].Results)
+	}
+
+	// Now print the final results
+	fmt.Printf("results:\n%s\n", allResults.String())
 }

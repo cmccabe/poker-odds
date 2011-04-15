@@ -21,9 +21,13 @@ import (
 	"sort"
 )
 
-const (
-	HAND_SZ = 5
-)
+const BOARD_MAX = 5
+
+const HOLE_SZ = 2
+
+const SPREAD_MAX = BOARD_MAX + HOLE_SZ
+
+const HAND_SZ = 5
 
 const (
 	JACK_VAL = 11

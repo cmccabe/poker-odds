@@ -22,7 +22,6 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"sort"
 )
 
 const BOARD_MAX = 5
@@ -90,58 +89,6 @@ func intsToStr(s []int) (string) {
 
 func processHand(h *Hand) {
 	fmt.Printf("%s\n", h.String())
-}
-
-type resultSet struct {
-	handTy map[int] int64
-	bestHands HandSlice
-}
-
-func makeResultSet(numBestHands int) *resultSet {
-	ret := new(resultSet)
-	ret.handTy = make(map[int] int64)
-	ret.bestHands = make(HandSlice, numBestHands + 1)
-	return ret
-}
-
-func (results *resultSet) addHand(h *Hand) {
-	results.handTy[h.GetTy()] = results.handTy[h.GetTy()] + 1
-	for i := range(results.bestHands) {
-		if ((results.bestHands[i] != nil) &&
-				h.Identical(results.bestHands[i])) {
-			return
-		}
-	}
-
-	results.bestHands[0] = h
-	sort.Sort(results.bestHands)
-	results.bestHands[0] = nil
-}
-
-func (results *resultSet) String() string {
-	var totalHands int64
-	totalHands = 0
-	for i := range(results.handTy) {
-		totalHands = totalHands + results.handTy[i]
-	}
-
-	ret := ""
-	for i := range(results.handTy) {
-		percent := float(results.handTy[i])
-		percent *= 100.0
-		percent /= float(totalHands);
-		ret += fmt.Sprintf("%03f%% chance of %s\n", percent, HandTyToStr(i))
-	}
-	ret += "\n";
-	ret += "Best hands:\n"
-	for i := len(results.bestHands)-1; i > 0; i-- {
-		h := results.bestHands[i]
-		if (h != nil) {
-			ret += results.bestHands[i].String()
-			ret += "\n"
-		}
-	}
-	return ret
 }
 
 /* Assumptions: we are the only players in the game
@@ -223,7 +170,7 @@ func main() {
 	}
 
 	///// Parse and validate user input ///// 
-	results := makeResultSet(5)
+	results := new(ResultSet)
 	fullFuture := Make52CardBag()
 	setupChooser := NewSubsetChooser(HOLE_SZ + BOARD_MAX, HAND_SZ)
 	for ;; {
@@ -249,7 +196,7 @@ func main() {
 		}
 		if (hIdx == HOLE_SZ + BOARD_MAX) {
 			h := MakeHand(handC)
-			results.addHand(h)
+			results.AddHand(h)
 		} else {
 			future := fullFuture.Clone()
 			for i := 0; i < hIdx; i++ {
@@ -265,7 +212,7 @@ func main() {
 					j++
 				}
 				h := MakeHand(handC)
-				results.addHand(h)
+				results.AddHand(h)
 				if (!futureChooser.Next()) {
 					break
 				}

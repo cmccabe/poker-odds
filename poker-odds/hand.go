@@ -42,6 +42,7 @@ const (
 	FULL_HOUSE
 	FOUR_OF_A_KIND
 	STRAIGHT_FLUSH
+	MAX_HANDS
 )
 
 func twc(a int, b int, alt int) int {

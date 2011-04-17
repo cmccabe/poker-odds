@@ -28,6 +28,19 @@ func (res *ResultSet) AddHand(h *Hand) {
 	res.handTyCnt[h.ty] = res.handTyCnt[h.ty] + 1
 }
 
+func (res *ResultSet) AddHandTy(h int) {
+	res.handTyCnt[h] = res.handTyCnt[h] + 1
+}
+
+func (res *ResultSet) GetBestHandTy() int {
+	for i := MAX_HANDS - 1; i >= 0; i-- {
+		if (res.handTyCnt[i] > 0) {
+			return i
+		}
+	}
+	return HIGH_CARD
+}
+
 func (res *ResultSet) MergeResultSet(rhs *ResultSet) {
 	for t := HIGH_CARD; t < MAX_HANDS; t++ {
 		res.handTyCnt[t] = res.handTyCnt[t] + rhs.handTyCnt[t]
@@ -47,10 +60,9 @@ func (res *ResultSet) String() string {
 		percent *= 100.0
 		percent /= float(totalHands);
 		if (percent > 0.0) {
-			ret += fmt.Sprintf("%03f%% chance of %s\n", percent, HandTyToStr(i))
+			ret += fmt.Sprintf("%03.2f%% chance of %s\n", percent, HandTyToStr(i))
 		}
 	}
-	ret += "\n";
 	return ret
 }
 

@@ -24,7 +24,7 @@ import (
 	"os"
 )
 
-const NUM_CARD_SLICE_PROCESSORS = 5
+const NUM_CARD_SLICE_PROCESSORS = 2
 
 func usage() {
 	fmt.Fprintf(os.Stderr,
@@ -171,6 +171,7 @@ func main() {
 	csps := make([]*CardSliceProcessor, NUM_CARD_SLICE_PROCESSORS)
 	for i := range(csps) {
 		csps[i] = NewCardSliceProcessor(base)
+		go csps[i].GoCardSliceProcessor()
 	}
 
 	future := Make52CardBag()
@@ -186,7 +187,7 @@ func main() {
 			csps[cspIdx].Card <- future.Get(futureC[i])
 		}
 		cspIdx++
-		if (cspIdx > NUM_CARD_SLICE_PROCESSORS) {
+		if (cspIdx >= NUM_CARD_SLICE_PROCESSORS) {
 			cspIdx = 0
 		}
 		if (!futureChooser.Next()) {
@@ -208,5 +209,5 @@ func main() {
 	}
 
 	// Now print the final results
-	fmt.Printf("results:\n%s\n", allResults.String())
+	fmt.Printf("results:\n%s", allResults.String())
 }

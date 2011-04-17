@@ -26,12 +26,16 @@ type CardSliceProcessor struct {
 
 func NewCardSliceProcessor(base_ CardSlice) *CardSliceProcessor {
 	ret := new(CardSliceProcessor)
+	ret.Card = make(chan *Card)
+	ret.Quit = make(chan bool)
+	ret.Finished = make(chan bool)
 	ret.base = base_.Copy()
 	return ret
 }
 
 func (csp *CardSliceProcessor) processSpread(spread CardSlice) {
 	setupChooser := NewSubsetChooser(SPREAD_MAX, HAND_SZ)
+	var tmpRes ResultSet
 	for ;; {
 		setup := setupChooser.Cur()
 		setupC := make(CardSlice, len(setup))
@@ -39,11 +43,12 @@ func (csp *CardSliceProcessor) processSpread(spread CardSlice) {
 			setupC[i] = spread[setup[i]]
 		}
 		h := MakeHand(setupC)
-		csp.Results.AddHand(h)
+		tmpRes.AddHand(h)
 		if (!setupChooser.Next()) {
 			break
 		}
 	}
+	csp.Results.AddHandTy(tmpRes.GetBestHandTy())
 }
 
 func (csp *CardSliceProcessor) GoCardSliceProcessor() {
@@ -57,6 +62,7 @@ func (csp *CardSliceProcessor) GoCardSliceProcessor() {
 		}
 		select {
 		case c := <-csp.Card:
+			//fmt.Printf("%p: received card %s\n", csp, c.String())
 			spread[j] = c
 			j++
 		case <-csp.Quit:

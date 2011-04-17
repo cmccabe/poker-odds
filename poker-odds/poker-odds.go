@@ -24,8 +24,6 @@ import (
 	"os"
 )
 
-const NUM_CARD_SLICE_PROCESSORS = 2
-
 func usage() {
 	fmt.Fprintf(os.Stderr,
 `%s: the Texas Hold Em' poker odds calculator.
@@ -124,6 +122,8 @@ func main() {
 	var help = flag.Bool("h", false, "help")
 	var holeStr = flag.String("a", "", "your two hole cards")
 	var boardStr = flag.String("b", "", "the board")
+	var numCsp = flag.Int("g", 3, "number of goprocs")
+
 	flag.Parse()
 	if (*help) {
 		usage()
@@ -168,7 +168,7 @@ func main() {
 	}
 
 	///// Process cards ///// 
-	csps := make([]*CardSliceProcessor, NUM_CARD_SLICE_PROCESSORS)
+	csps := make([]*CardSliceProcessor, *numCsp)
 	for i := range(csps) {
 		csps[i] = NewCardSliceProcessor(base)
 		go csps[i].GoCardSliceProcessor()
@@ -187,7 +187,7 @@ func main() {
 			csps[cspIdx].Card <- future.Get(futureC[i])
 		}
 		cspIdx++
-		if (cspIdx >= NUM_CARD_SLICE_PROCESSORS) {
+		if (cspIdx >= *numCsp) {
 			cspIdx = 0
 		}
 		if (!futureChooser.Next()) {

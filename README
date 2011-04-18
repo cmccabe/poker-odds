@@ -1,0 +1,16 @@
+poker-odds is a program for calculating the odds in a Texas Hold 'Em poker
+game.  It tells you how likely you are to make each category of hand.  For
+example, it can tell you how likely it is that, if you start with two aces, you
+will get four of a kind.
+
+Currently, poker-odds only takes into account one player. You cannot augment it
+with your knowledge, actual or suspected, about what other players hold (and
+what therefore cannot be revealed by the dealer).
+
+I wrote poker-odds partly to learn the Google Go (Golang) programming language.
+poker-odds can be configured to use as many or as few goprocs as you like. More
+goprocs means more parallelism, of course.
+
+I hope you have fun with this and with Go!
+
+Colin McCabe

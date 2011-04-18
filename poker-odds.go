@@ -43,6 +43,9 @@ Usage:
 -a [your hand as a whitespace-separated list of cards]
 -b [the board as a whitespace-separated list of cards]
 If no -b is given, it will be assumed that no cards are on the board.
+
+-g [num_goroutines]               Set the number of goroutines to use.
+
 -h this help message
 
 Usage Example:
@@ -64,6 +67,13 @@ func checkBoardLength(blen int) {
 	var validLens = []int { 0, 3, 4, 5 }
 	for i := range(validLens) {
 		if (blen == validLens[i]) {
+			if (blen == 0) {
+				fmt.Printf("Now calculating ALL possible hands that can be " +
+					"made starting with these hole cards. This will take a " +
+					"while! You may want to set GOMAXPROCS and use -g.\n" +
+					"Note: It is much faster to calculate your odds " +
+					"AFTER the flop.\n")
+			}
 			return
 		}
 	}
@@ -96,24 +106,13 @@ func processHand(h *Hand) {
  *         Other numbers of cards represent errors
  *         (Future enhancement: support other poker games besides Texas Hold em')
  * 
- * 2. for all possible 'setups':
- *        for all hands in the setup:
- *              add the hand to the hand set
+ * 2. for all possible final boards:
+ *        Determine the best type of hand we can make with this board and the
+ *        hole cards.
  *
- *    A poker hand is always 5 cards. The 'setup' is which cards we use from
- *    the hole, which cards we use from the board, and which cards we use from
- *    the 'future'. Of course, we don't know what the future will hold. That's
- *    why a single setup will contain more than one hand, if it uses future
- *    cards.
+ * 3. Print out the odds of getting each type of hand. We can use the fact that
+ *        each distinct final board is equally likely.
  *
- *    If the board contains 5 cards, then there is no future (all the
- *    cards that are going to come out have already come out) and the
- *    calculation is simple. If the board has 0 cards, there will be a lot of
- *    possibilities! Actually, though, you can still do this calculation in the
- *    comfort of your own home, using the wonderfully fast computers that
- *    we have access to now.
- *
- * 3. print out the hand set, or possibly just the best part of it.
  */
 func main() {
 	///// Parse and validate user input ///// 

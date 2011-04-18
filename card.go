@@ -14,21 +14,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-
-/* assumptions: we are the only players in the game
- * later this can be refined if you have an idea of what other players have or don't have.
- * 
- * 1. get inputs
- * a. your hand (required)
- * b. the board (0 cards, 3 , 4, or 5 cards)
- *         Other numbers of cards represent errors
- * 
- * 2. for all possible poker hands that can be formed by your hand:
- * calculate the odds of getting that hand (100% if you already have it)
- * 
- * 3. print all odds in a nice format
- */
-
 package pokerodds
 
 import (

@@ -14,7 +14,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pokerodds
+package main
 
 import (
 	"fmt"
@@ -56,9 +56,9 @@ func (res *ResultSet) String() string {
 
 	ret := ""
 	for i := range(res.handTyCnt) {
-		percent := float(res.handTyCnt[i])
+		percent := float32(res.handTyCnt[i])
 		percent *= 100.0
-		percent /= float(totalHands);
+		percent /= float32(totalHands);
 		if (percent > 0.0) {
 			ret += fmt.Sprintf("%03.2f%% chance of %s\n", percent, HandTyToStr(i))
 		}

@@ -16,8 +16,6 @@
 
 package main
 
-import . "pokerodds"
-
 import (
 	"flag"
 	"fmt"

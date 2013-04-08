@@ -17,17 +17,17 @@
 package main
 
 import (
+	"fmt"
 	"sort"
 )
 
 type CardBag struct {
 	allCards CardSlice
-	skipped CardSlice
 }
 
 func Make52CardBag() *CardBag {
 	// generate a CardBag that has every possible card
-	bag := &CardBag { make(CardSlice, 52), CardSlice {} }
+	bag := &CardBag { make(CardSlice, 52) }
 	idx := 0
 	for val := 2; val <= 14; val++ {
 		for suit := range([]int { DIAMONDS, CLUBS, HEARTS, SPADES }) {
@@ -45,25 +45,35 @@ func Make52CardBag() *CardBag {
 func (bag *CardBag) Clone() *CardBag {
 	ret := new(CardBag)
 	ret.allCards = bag.allCards
-	ret.skipped = make(CardSlice, 0)
-	copy(ret.skipped, bag.skipped)
 	return ret
 }
 
 func (bag *CardBag) Subtract(c *Card) {
-	bag.skipped = append(bag.skipped, c)
+	nextAllCards := make(CardSlice, len(bag.allCards) - 1)
+	i := 0
+	for i = 0; i < len(bag.allCards); i++ {
+		if (bag.allCards[i].Compare(c) == 0) {
+			break
+		}
+	}
+	if (i == len(bag.allCards)) {
+		panic(fmt.Sprintf("tried to subtract %v from this cardbag, but " +
+			"it doesn't currently contain that card.", c))
+	}
+	copy(nextAllCards[0:i], bag.allCards[0:i])
+	copy(nextAllCards[i:], bag.allCards[i+1:])
+	bag.allCards = nextAllCards
 }
 
 func (bag *CardBag) Get(num uint) *Card {
-	onum := num
-	for i := range(bag.skipped) {
-		if (bag.skipped[i].Compare(bag.allCards[num]) <= 0) {
-			onum++
-		}
-	}
-	return bag.allCards[onum]
+	return bag.allCards[num]
 }
 
 func (bag *CardBag) Len() int {
-	return len(bag.allCards) - len(bag.skipped)
+	return len(bag.allCards)
+}
+
+func (bag *CardBag) String() string {
+	return fmt.Sprintf("CardBag{allCards=%v}",
+		bag.allCards)
 }

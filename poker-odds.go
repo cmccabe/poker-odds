@@ -176,7 +176,7 @@ func main() {
 		future.Subtract(base[i])
 	}
 	numFutureCards := SPREAD_MAX - len(base)
-	futureChooser := NewSubsetChooser(uint(future.Len() - 1), uint(numFutureCards))
+	futureChooser := NewSubsetChooser(uint(future.Len()), uint(numFutureCards))
 	cspIdx := 0
 	for ;; {
 		futureC := futureChooser.Cur()

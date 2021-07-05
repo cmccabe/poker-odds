@@ -239,10 +239,13 @@ func MakeHandImpl(cardsIn CardSlice) *Hand {
 			h.val[0] = freqs[3][0]
 			h.val[1] = freqs[3][1]
 			h.ty = FULL_HOUSE
-		} else if (len(freqs[2]) > 0) {
+			return h
+		}
+		if (len(freqs[2]) > 0) {
 			h.val[0] = freqs[3][0]
 			h.val[1] = freqs[2][0]
 			h.ty = FULL_HOUSE
+			return h
 		}
 	}
 

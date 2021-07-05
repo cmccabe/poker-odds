@@ -43,7 +43,8 @@ diff "${tmp2}" "${tmp}" || die "unexpected result from test 3"
 "${poker_odds}" -b 'KD KC 5H' -a 'KS QS' > "${tmp}"
 cat << EOF >  "${tmp2}"
 results:
-95.74% chance of three of a kind
+66.60% chance of three of a kind
+29.14% chance of a full house
 4.26% chance of four of a kind
 EOF
 diff "${tmp2}" "${tmp}" || die "unexpected result from test 4"
@@ -55,3 +56,13 @@ results:
 39.13% chance of a pair
 EOF
 diff "${tmp2}" "${tmp}" || die "unexpected result from test 5"
+
+"${poker_odds}" -b "KD KH 2S" -a "KS QS" > "${tmp}"
+cat << EOF >  "${tmp2}"
+results:
+62.44% chance of three of a kind
+4.16% chance of a flush
+29.14% chance of a full house
+4.26% chance of four of a kind
+EOF
+diff "${tmp2}" "${tmp}" || die "unexpected result from test 6"
